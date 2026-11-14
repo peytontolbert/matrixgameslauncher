@@ -20,7 +20,7 @@ public interface IGameAdapter {
     void ResolveLocations(LauncherSettings settings,GameLocations locations);
     void ValidateLocations(GameLocations locations);
     string AccountId();
-    string SelectModel(IWin32Window owner,ServerEntry server);
+    string SelectModel(IWin32Window owner,ServerEntry server,ContentPlan plan);
     Task Launch(Dictionary<string,object> grant,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel);
 }
 public static class Games {
@@ -37,7 +37,7 @@ public static class JoinLink {
 public sealed class AssettoCorsa : IGameAdapter {
     public string Id {get{return "assetto-corsa";}} public string Name {get{return "Assetto Corsa";}}
     public string DefaultDocuments {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Assetto Corsa");}}
-    public string SelectModel(IWin32Window owner,ServerEntry server){using(var dialog=new AssettoCarWindow(server))return dialog.ShowDialog(owner)==DialogResult.OK?dialog.SelectedModel:null;}
+    public string SelectModel(IWin32Window owner,ServerEntry server,ContentPlan plan){using(var dialog=new AssettoCarWindow(server,plan))return dialog.ShowDialog(owner)==DialogResult.OK?dialog.SelectedModel:null;}
     public string FindInstallation(string steam){
         return ContentDiscovery.SteamInstallations(steam).FirstOrDefault()??"";
     }
@@ -85,14 +85,22 @@ public sealed class AssettoCorsa : IGameAdapter {
     }
 }
 public sealed class AssettoCarWindow : Form {
-    readonly ComboBox choices=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=510};
-    public string SelectedModel {get{return choices.SelectedItem as string;}}
-    public AssettoCarWindow(ServerEntry server){
-        Text="Join "+server.Name;ClientSize=new Size(570,225);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;StartPosition=FormStartPosition.CenterParent;Font=new Font("Segoe UI",10);
+    sealed class Choice {public string Id,Name;public override string ToString(){return Name;}}
+    readonly ComboBox choices=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=640};
+    public string SelectedModel {get{var selected=choices.SelectedItem as Choice;return selected==null?null:selected.Id;}}
+    public static string Requirements(ContentPlan plan){
+        if(plan==null)return "Required assets will be checked before joining.";
+        var lines=new List<string>{"Required assets: "+plan.Manifest.Assets.Length+" | Download: "+(plan.DownloadBytes/1024.0/1024/1024).ToString("0.00")+" GB", "All server cars are needed to see other players, plus the track and traffic assets.", ""};
+        foreach(var p in plan.Manifest.Assets){var choice=plan.Choices.FirstOrDefault(c=>c.Package==p);string state=choice==null?"Installed":choice.Folder!=null?"Reuse existing folder":choice.Archive!=null?"Install existing archive":"Download "+(p.Bytes/1024/1024)+" MB";lines.Add(state+" | "+p.Kind+" | "+p.Name);}
+        return string.Join("\r\n",lines);
+    }
+    public AssettoCarWindow(ServerEntry server,ContentPlan plan=null){
+        Text="Join "+server.Name;ClientSize=new Size(700,530);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;StartPosition=FormStartPosition.CenterParent;Font=new Font("Segoe UI",10);
         var panel=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(22)};
         panel.Controls.Add(new Label{Text="Choose your Assetto Corsa car",AutoSize=true,Font=new Font("Segoe UI",15)});
-        panel.Controls.Add(new Label{Text="Cars offered by "+server.Name,AutoSize=true,MaximumSize=new Size(510,50),Margin=new Padding(3,12,3,12)});
-        choices.Items.AddRange(server.Models);if(choices.Items.Count>0)choices.SelectedIndex=0;panel.Controls.Add(choices);
-        var buttons=new FlowLayoutPanel{Width=510,Height=45,Margin=new Padding(0,15,0,0)};var next=new Button{Text="Continue",AutoSize=true,DialogResult=DialogResult.OK,Enabled=choices.Items.Count>0};var back=new Button{Text="Cancel",AutoSize=true,DialogResult=DialogResult.Cancel};buttons.Controls.Add(next);buttons.Controls.Add(back);panel.Controls.Add(buttons);Controls.Add(panel);AcceptButton=next;CancelButton=back;
+        panel.Controls.Add(new Label{Text=server.Name+" | "+(server.Online?"Online":"Offline")+" | "+server.Players+"/"+server.Capacity+" players\nTrack: "+server.Track,AutoSize=true,MaximumSize=new Size(640,65),Margin=new Padding(3,12,3,12)});
+        foreach(string id in server.Models)choices.Items.Add(new Choice{Id=id,Name=server.ModelName(id)});if(choices.Items.Count>0)choices.SelectedIndex=0;panel.Controls.Add(choices);
+        panel.Controls.Add(new TextBox{Text=Requirements(plan),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Width=640,Height=270,Margin=new Padding(3,14,3,3)});
+        var buttons=new FlowLayoutPanel{Width=640,Height=45,Margin=new Padding(0,12,0,0)};var next=new Button{Text=plan!=null&&plan.Choices.Length==0?"Join server":"Review required assets",AutoSize=true,DialogResult=DialogResult.OK,Enabled=choices.Items.Count>0};var back=new Button{Text="Cancel",AutoSize=true,DialogResult=DialogResult.Cancel};buttons.Controls.Add(next);buttons.Controls.Add(back);panel.Controls.Add(buttons);Controls.Add(panel);AcceptButton=next;CancelButton=back;
     }
 }

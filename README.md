@@ -12,7 +12,7 @@ The [hosted server directory](https://matrixgames.app/servers) and launcher acco
 
 1. Set your Steam folder, Matrix Games library folder, and the selected game's installation and documents folders once. Assetto Corsa can be found across the selected Steam folder's library list. An optional existing mods folder points to content you already downloaded elsewhere.
 2. Sign in through the Matrix Games website using Google, then approve the code shown by the launcher. Your Google password and Google tokens never enter the launcher.
-3. Click **Join** on an online server in the launcher or [matrixgames.app/servers](https://matrixgames.app/servers). For Assetto Corsa, the launcher then asks you to choose one of that server's cars.
+3. Click **Join** on an online server in the launcher or [matrixgames.app/servers](https://matrixgames.app/servers). The server list shows the game, track and offered cars. For Assetto Corsa, the launcher then opens a car chooser with the complete required-asset list, installed/reusable/download status, and actual download size.
 4. The launcher checks the server's required content against files already installed. Matching files are reused in place. It also checks known content layouts in your saved installation, documents, mods, and library folders; compatible folders can be linked without copying, and verified existing archives can be installed without downloading again.
 5. If content needs installation or linking, review the exact local sources or server owner's download URLs, archive hashes, actual download size, and game destinations. Failed installed-file checks explain what differs. Approve the installation to continue.
 6. The launcher downloads and verifies the approved content, links it into the game, obtains a fresh join authorization, and starts the game.
@@ -32,6 +32,8 @@ MatrixGames/
   downloads/                                       # resumable partial downloads
   staging/                                         # temporary extraction
 ```
+
+The main window shows the active library. Use **Settings / library** to select another folder or a drive root such as `K:\`. Changing it controls where new assets are installed; previous libraries remain available for reuse and existing game links stay intact. Files are not moved automatically.
 
 Matching content in an existing game installation is left in place. Missing content is stored once in the library and connected to the game's normal content folder using Windows directory junctions. Servers requiring the same archive and content root reuse the same payload. Completed compressed downloads are removed; interrupted downloads can resume.
 

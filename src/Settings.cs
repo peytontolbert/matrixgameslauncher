@@ -14,6 +14,13 @@ public sealed class GameLocations {
 public sealed class LauncherSettings {
     public string SteamDirectory="",DriverName="Driver",LibraryDirectory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"MatrixGames");
     public Dictionary<string,GameLocations> Games=new Dictionary<string,GameLocations>();
+    public string[] PreviousLibraries=new string[0];
+    public void SelectLibrary(string path){
+        string next=Path.GetFullPath(path);new AssetVault(next);
+        var old=PreviousLibraries??new string[0];
+        if(!string.IsNullOrWhiteSpace(LibraryDirectory)&&!string.Equals(next,Path.GetFullPath(LibraryDirectory),StringComparison.OrdinalIgnoreCase))old=old.Concat(new[]{Path.GetFullPath(LibraryDirectory)}).ToArray();
+        PreviousLibraries=old.Where(p=>!string.Equals(p,next,StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();LibraryDirectory=next;
+    }
     static readonly JavaScriptSerializer Json=new JavaScriptSerializer{MaxJsonLength=131072};
     public static string SettingsPath { get {return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MatrixGames","Launcher","settings.json");} }
     public static LauncherSettings Load(string path){

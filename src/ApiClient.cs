@@ -7,6 +7,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+public sealed class ApiException : IOException {
+    public readonly int Status;public ApiException(int status,string message,Exception inner):base(message,inner){Status=status;}
+}
 public sealed class ApiClient {
     public const string Origin="https://api.matrixgames.app";
     public string Token;
@@ -26,7 +29,7 @@ public sealed class ApiClient {
                     return Data.Object(Data.Json.DeserializeObject(Encoding.UTF8.GetString(bytes.ToArray())));
                 }
             }
-        }catch(WebException e){cancel.ThrowIfCancellationRequested();var response=e.Response as HttpWebResponse;var status=response==null?0:(int)response.StatusCode;if(response!=null)response.Dispose();throw new IOException(status==401?"Sign in to Matrix Games again.":status==409?"Server status or content changed. Refresh and join again.":"Could not contact the service"+(status>0?" (HTTP "+status+")":"")+". Try again.",e);}
+        }catch(WebException e){cancel.ThrowIfCancellationRequested();var response=e.Response as HttpWebResponse;var status=response==null?0:(int)response.StatusCode;if(response!=null)response.Dispose();throw new ApiException(status,status==401?"Sign in to Matrix Games again.":status==409?"Server status or content changed. Refresh and join again.":"Could not contact the service"+(status>0?" (HTTP "+status+")":"")+". Try again.",e);}
     }
 }
 public static class TokenStore {

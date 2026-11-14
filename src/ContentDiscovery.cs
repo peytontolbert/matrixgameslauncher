@@ -18,11 +18,13 @@ public static class ContentDiscovery {
         return candidates.Distinct(StringComparer.OrdinalIgnoreCase).Where(p=>File.Exists(Path.Combine(p,"acs.exe"))).ToArray();
     }
     public static string[] SearchRoots(LauncherSettings settings,GameLocations locations){
-        return new[]{locations.InstallDirectory,locations.DocumentsDirectory,locations.ContentDirectory,settings.LibraryDirectory}.Concat(SteamInstallations(settings.SteamDirectory)).Where(p=>!string.IsNullOrWhiteSpace(p)&&Path.IsPathRooted(p)).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        return new[]{locations.InstallDirectory,locations.DocumentsDirectory,locations.ContentDirectory,settings.LibraryDirectory}.Concat(settings.PreviousLibraries??new string[0]).Concat(SteamInstallations(settings.SteamDirectory)).Where(p=>!string.IsNullOrWhiteSpace(p)&&Path.IsPathRooted(p)).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
     static IEnumerable<string> Candidates(ContentPackage p,IEnumerable<string> roots){
         string type=p.Kind=="car"?"cars":"tracks";
         foreach(string root in roots){if(string.IsNullOrWhiteSpace(root)||!Path.IsPathRooted(root))continue;
+            // The content-addressed object path lets an old library remain reusable.
+            string cached=null;try{cached=new AssetVault(root).Payload(p);}catch(IOException){}if(cached!=null)yield return cached;
             yield return Path.Combine(root,"content",type,p.Id);yield return Path.Combine(root,type,p.Id);yield return Path.Combine(root,p.Id);
             if(string.Equals(Path.GetFileName(root.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar)),p.Id,StringComparison.OrdinalIgnoreCase))yield return root;
         }
