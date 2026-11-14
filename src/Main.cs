@@ -67,13 +67,7 @@ public sealed class LauncherWindow : Form {
         using(var mutex=new Mutex(false,@"Local\MatrixGames.GameSession")){
             bool held=false;try{try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}if(!held)throw new IOException("Another launcher window is installing content or running a game.");
                 if(game.Id=="gta-v"){
-                    if(server.Id!="managed-gta-legion")throw new IOException("This GTA server is not supported by the preview client.");
-                    if(GtaRuntime.Missing(locations.InstallDirectory).Length>0){
-                        if(MessageBox.Show(this,GtaRuntime.Review(locations.InstallDirectory),"Install Matrix GTA client",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK){status.Text="Join cancelled.";return;}
-                        var progress=new Progress<string>(message=>status.Text=message);await Task.Run(()=>GtaRuntime.Install(locations.InstallDirectory,settings.LibraryDirectory,operation.Token,message=>((IProgress<string>)progress).Report(message)));
-                    }
-                    var permission=await api.Call("/v1/gta/native-ticket",new{},operation.Token);
-                    await game.Launch(permission,server,"default","",settings,message=>status.Text=message,operation.Token);return;
+                    throw new IOException("The standalone Matrix GTA runtime is still in development and is unavailable in this build.");
                 }
                 status.Text="Checking server assets...";var response=await api.Call("/v1/servers/"+server.Id+"/manifest",null,operation.Token);if(Data.Text(response,"server")!=server.Id)throw new IOException("Wrong server manifest");var manifest=AssetManifest.Parse(response["manifest"]);if(manifest.Game!=server.Game||!manifest.Assets.Any(p=>p.Kind=="track"&&p.Id==server.Track)||!server.Models.All(id=>manifest.Assets.Any(p=>p.Kind=="car"&&p.Id==id)))throw new IOException("Server manifest is incomplete");
                 var vault=new AssetVault(settings.LibraryDirectory);var plan=await Task.Run(()=>vault.Plan(locations.InstallDirectory,manifest,ContentDiscovery.SearchRoots(settings,locations)));operation.Token.ThrowIfCancellationRequested();

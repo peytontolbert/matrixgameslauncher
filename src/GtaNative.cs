@@ -38,7 +38,9 @@ public sealed class GtaV : IGameAdapter {
         string endpoint=Data.Text(grant,"endpoint");long ttl=Convert.ToInt64(grant["expiresAt"])-DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if(Convert.ToInt32(grant["schema"])!=1||Data.Text(grant,"game")!="gta-v"||Data.Text(grant,"server")!=server||server!="managed-gta-legion"||Data.Text(grant,"room")!="gta-legion"||Data.Text(grant,"revision")!="los-santos-legion-v1"||Data.Text(grant,"client")!="native"||endpoint!="wss://api.matrixgames.app/v1/gta/native-socket"||!Regex.IsMatch(Data.Text(grant,"ticket"),@"\A[A-Za-z0-9_-]{43}\z")||ttl<=0||ttl>300000)throw new IOException("Invalid or expired GTA join permission");
     }
-    public static string LaunchArguments {get{return "-applaunch 271590 -scOfflineOnly -nobattleye -noBE";}}
+    // Let Rockstar perform its normal ownership check. Forcing offline mode
+    // prevents first-run activation even when Steam and the user are online.
+    public static string LaunchArguments {get{return "-applaunch 271590 -nobattleye -noBE";}}
     public async Task Launch(Dictionary<string,object> grant,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel){
         ValidateGrant(grant,server.Id);var location=settings.Games[Id];ValidateLocations(location);
         string steam=Path.Combine(settings.SteamDirectory,"steam.exe");if(!File.Exists(steam))throw new IOException("Set your Steam folder in Settings. This preview supports the Steam edition of GTA V Legacy.");

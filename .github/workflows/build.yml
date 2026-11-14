@@ -11,16 +11,9 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare pinned GTA scripting SDK
-        shell: powershell
-        run: |
-          $zip = Join-Path $env:RUNNER_TEMP 'shvdn-sdk.zip'
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/scripthookvdotnet/scripthookvdotnet-nightly/releases/download/v3.7.0-nightly.204/ScriptHookVDotNet-v3.7.0-nightly.204.zip' -OutFile $zip
-          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'bb832165f6b546e63706fee696c5789f3160d7d5f6da67b6c261538c0d6963d5') { throw 'SDK digest mismatch' }
-          Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'gta-sdk')
       - name: Build and test
         shell: powershell
-        run: ./build.ps1 -Test -GtaSdkDirectory (Join-Path $env:RUNNER_TEMP 'gta-sdk')
+        run: ./build.ps1 -Test
       - uses: actions/upload-artifact@v4
         with:
           name: MatrixGamesLauncher-windows-x64
