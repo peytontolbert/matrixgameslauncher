@@ -4,7 +4,7 @@ The launcher shell owns accounts, the server directory, saved locations, consent
 
 To add a game:
 
-1. Implement an adapter with a stable game ID, display name, default documents location, installation detection, location validation, account requirements, and launch behavior.
+1. Implement an adapter with a stable game ID, display name, default documents location, installation detection, location validation, account requirements, game-specific options shown after clicking Join, and launch behavior.
 2. Add the corresponding game ID, connection schema, registration validation, readiness checks, and join authorization to the account/server-directory service.
 3. Define allowed content types and destinations for that game. Extend the manifest validator and vault destination resolver together. The initial resolver supports only Assetto Corsa car and track directories; do not reuse those paths for another game.
 4. Add tests for safe launch arguments, saved settings, game-specific prerequisites, manifest validation, and missing-content installation.

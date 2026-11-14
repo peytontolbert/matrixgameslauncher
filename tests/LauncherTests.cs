@@ -17,7 +17,7 @@ public static class LauncherTests {
         ContentInstaller.ArchiveName("root/skins/blue skin/body.dds","root");count++;
         foreach(string bad in new[]{"matrixgames://join?game=assetto-corsa&server=a&host=evil","matrixgames://join?game=halo&server=a","matrixgames://join?game=assetto-corsa&server=a\n","https://join?game=assetto-corsa&server=a"})Reject(()=>JoinLink.Server(bad),"Unsafe protocol accepted");
         Assert(JoinLink.Server("matrixgames://join?game=assetto-corsa&server=managed-110")=="managed-110","Join link failed");
-        Assert(JoinLink.Model("matrixgames://join?game=assetto-corsa&server=managed-110&model=car_one")=="car_one","Selected car retained");
+        Reject(()=>JoinLink.Server("matrixgames://join?game=assetto-corsa&server=managed-110&model=car_one"),"Car selection belongs to the game's join step");
         Assert(Program.ProtocolCommand(@"C:\Test User\Launcher.exe")=="\"C:\\Test User\\Launcher.exe\" \"%1\"","Protocol quoting");
         string source=Path.Combine(root,"source","fixture");Directory.CreateDirectory(source);File.WriteAllText(Path.Combine(source,"data.acd"),"abc",new UTF8Encoding(false));var package=Package("fixture",source);
         var manifest=new AssetManifest{Game="assetto-corsa",Revision=new string('b',64),Assets=new[]{package}};string game=Path.Combine(root,"game"),library=Path.Combine(root,"library");Directory.CreateDirectory(game);var vault=new AssetVault(library);

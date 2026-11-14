@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Drawing;
+using System.Windows.Forms;
 using Microsoft.Win32;
 
 // Game adapters own installation detection, requirements and launch behavior.
@@ -17,6 +19,7 @@ public interface IGameAdapter {
     string FindInstallation(string steam);
     void ValidateLocations(GameLocations locations);
     string AccountId();
+    string SelectModel(IWin32Window owner,ServerEntry server);
     Task Launch(Dictionary<string,object> grant,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel);
 }
 public static class Games {
@@ -24,8 +27,7 @@ public static class Games {
     public static IGameAdapter Resolve(string id){var game=All.FirstOrDefault(g=>g.Id==id);if(game==null)throw new IOException("This game does not have an installed launcher integration yet");return game;}
 }
 public static class JoinLink {
-    static Match Parse(string link){return Regex.Match(link??"",@"\Amatrixgames://join\?game=([a-z0-9-]+)&server=([A-Za-z0-9_-]{1,80})(?:&model=([A-Za-z0-9_-]{1,80}))?\z");}
-    public static string Model(string link){Server(link);return Parse(link).Groups[3].Value;}
+    static Match Parse(string link){return Regex.Match(link??"",@"\Amatrixgames://join\?game=([a-z0-9-]+)&server=([A-Za-z0-9_-]{1,80})\z");}
     public static string Server(string link){
         var match=Parse(link);
         if(!match.Success)throw new IOException("Invalid join link. Open matrixgames.app/servers and choose a server.");Games.Resolve(match.Groups[1].Value);return match.Groups[2].Value;
@@ -34,6 +36,7 @@ public static class JoinLink {
 public sealed class AssettoCorsa : IGameAdapter {
     public string Id {get{return "assetto-corsa";}} public string Name {get{return "Assetto Corsa";}}
     public string DefaultDocuments {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Assetto Corsa");}}
+    public string SelectModel(IWin32Window owner,ServerEntry server){using(var dialog=new AssettoCarWindow(server))return dialog.ShowDialog(owner)==DialogResult.OK?dialog.SelectedModel:null;}
     public string FindInstallation(string steam){
         if(string.IsNullOrWhiteSpace(steam))return "";var candidates=new List<string>{Path.Combine(steam,"steamapps","common","assettocorsa")};
         string libraries=Path.Combine(steam,"steamapps","libraryfolders.vdf");if(File.Exists(libraries))foreach(Match m in Regex.Matches(File.ReadAllText(libraries),"\"path\"\\s*\"([^\"]+)\""))candidates.Add(Path.Combine(m.Groups[1].Value.Replace("\\\\","\\"),"steamapps","common","assettocorsa"));
@@ -76,5 +79,17 @@ public sealed class AssettoCorsa : IGameAdapter {
             using(var process=Process.Start(start)){report("Assetto Corsa is running. Close the game to return to the launcher.");await Task.Run(()=>process.WaitForExit());}
         }finally{if(File.Exists(path)&&File.ReadAllText(path)==config){if(existed)File.Copy(backup,path,true);else File.Delete(path);}}
         report("Session ended. Previous race settings restored when unchanged; backup retained.");
+    }
+}
+public sealed class AssettoCarWindow : Form {
+    readonly ComboBox choices=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=510};
+    public string SelectedModel {get{return choices.SelectedItem as string;}}
+    public AssettoCarWindow(ServerEntry server){
+        Text="Join "+server.Name;ClientSize=new Size(570,225);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;StartPosition=FormStartPosition.CenterParent;Font=new Font("Segoe UI",10);
+        var panel=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(22)};
+        panel.Controls.Add(new Label{Text="Choose your Assetto Corsa car",AutoSize=true,Font=new Font("Segoe UI",15)});
+        panel.Controls.Add(new Label{Text="Cars offered by "+server.Name,AutoSize=true,MaximumSize=new Size(510,50),Margin=new Padding(3,12,3,12)});
+        choices.Items.AddRange(server.Models);if(choices.Items.Count>0)choices.SelectedIndex=0;panel.Controls.Add(choices);
+        var buttons=new FlowLayoutPanel{Width=510,Height=45,Margin=new Padding(0,15,0,0)};var next=new Button{Text="Continue",AutoSize=true,DialogResult=DialogResult.OK,Enabled=choices.Items.Count>0};var back=new Button{Text="Cancel",AutoSize=true,DialogResult=DialogResult.Cancel};buttons.Controls.Add(next);buttons.Controls.Add(back);panel.Controls.Add(buttons);Controls.Add(panel);AcceptButton=next;CancelButton=back;
     }
 }

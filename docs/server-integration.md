@@ -68,7 +68,7 @@ HTTPS downloads must resolve directly without redirects, credentials in URLs, or
 
 ## Join
 
-The website opens `matrixgames://join?game=assetto-corsa&server=<id>`. The desktop client verifies local content, obtains consent for missing assets, installs them, and only then calls `POST /v1/servers/<id>/join` with:
+The website opens `matrixgames://join?game=assetto-corsa&server=<id>`. The Assetto Corsa adapter then opens its car chooser using that server's roster. No car is preselected by the website or join link. The desktop client verifies local content, obtains consent for missing assets, installs them, and only then calls `POST /v1/servers/<id>/join` with:
 
 ```json
 { "steamId": "76561198000000000", "model": "my_car", "manifestRevision": "CURRENT_MANIFEST_REVISION" }

@@ -12,7 +12,7 @@ This is the initial development version. The matching Matrix Games server-direct
 
 1. Set your Steam folder, Matrix Games library folder, and the selected game's installation and documents folders once.
 2. Sign in through the Matrix Games website using Google, then approve the code shown by the launcher. Your Google password and Google tokens never enter the launcher.
-3. Pick an online server from the launcher or [matrixgames.app/servers](https://matrixgames.app/servers).
+3. Click **Join** on an online server in the launcher or [matrixgames.app/servers](https://matrixgames.app/servers). For Assetto Corsa, the launcher then asks you to choose one of that server's cars.
 4. The launcher checks the server's required content against files already installed. Matching files are reused in place.
 5. If content is missing, review the server owner's download URLs, archive hashes, sizes, library location, and game destinations. Approve the installation to continue.
 6. The launcher downloads and verifies the approved content, links it into the game, obtains a fresh join authorization, and starts the game.

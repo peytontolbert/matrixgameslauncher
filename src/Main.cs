@@ -12,33 +12,41 @@ using Microsoft.Win32;
 public sealed class LauncherWindow : Form {
     readonly LauncherSettings settings;readonly ApiClient api=new ApiClient();
     readonly ListBox servers=new ListBox{Dock=DockStyle.Fill};
-    readonly ComboBox cars=new ComboBox{Width=340,DropDownStyle=ComboBoxStyle.DropDownList};
     readonly Label status=new Label{AutoSize=false,Dock=DockStyle.Bottom,Height=64,Padding=new Padding(12)};
     readonly Label account=new Label{AutoSize=true,Text="Browse servers, then sign in to join."};
-    readonly Button join=new Button{Text="Check assets and join",AutoSize=true};
+    readonly Button join=new Button{Text="Join server",AutoSize=true};
     readonly Button cancel=new Button{Text="Cancel",AutoSize=true,Enabled=false};
     readonly FlowLayoutPanel actions=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46};
-    CancellationTokenSource operation;bool busy;string pending,pendingModel;
+    CancellationTokenSource operation;bool busy;string pending;
     public LauncherWindow(string input){
-        settings=LauncherSettings.Load(LauncherSettings.SettingsPath);api.Token=TokenStore.Load();pending=input==null?null:JoinLink.Server(input);pendingModel=input==null?null:JoinLink.Model(input);
+        settings=LauncherSettings.Load(LauncherSettings.SettingsPath);api.Token=TokenStore.Load();pending=input==null?null:JoinLink.Server(input);
         Text="Matrix Games Launcher";Size=new Size(880,640);MinimumSize=new Size(720,520);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",10);
         var header=new Label{Text="Matrix Games\nGame mods and online servers",Dock=DockStyle.Top,Height=100,Padding=new Padding(12),Font=new Font("Segoe UI",17)};
         var panel=new TableLayoutPanel{Dock=DockStyle.Fill,Padding=new Padding(12),ColumnCount=1,RowCount=4};panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,30));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,46));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,70));Controls.Add(panel);Controls.Add(status);Controls.Add(header);
-        var bottom=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=80,FlowDirection=FlowDirection.LeftToRight};bottom.Controls.Add(new Label{Text="Car",AutoSize=true,Padding=new Padding(0,7,0,0)});bottom.Controls.Add(cars);bottom.Controls.Add(join);bottom.Controls.Add(cancel);
+        var bottom=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=80,FlowDirection=FlowDirection.LeftToRight};bottom.Controls.Add(join);bottom.Controls.Add(cancel);
         panel.Controls.Add(account,0,0);panel.Controls.Add(actions,0,1);panel.Controls.Add(servers,0,2);panel.Controls.Add(bottom,0,3);
         Button refresh=Button("Refresh servers",()=>Run(RefreshServers));Button signIn=Button("Sign in",()=>Run(SignIn));Button signOut=Button("Sign out",()=>Run(async()=>{try{if(api.Token!=null)await api.Call("/v1/launcher/auth/logout",new{},operation.Token);}finally{api.Token=null;TokenStore.Clear();account.Text="Signed out on this device.";}}));
         Button options=Button("Settings",()=>{using(var dialog=new SettingsWindow(settings))dialog.ShowDialog(this);});
         Button host=Button("Host a server",()=>Open("https://matrixgames.app/servers#host"));
         actions.Controls.AddRange(new Control[]{refresh,signIn,signOut,options,host});
-        servers.SelectedIndexChanged+=(s,e)=>{cars.Items.Clear();var server=servers.SelectedItem as ServerEntry;if(server!=null)cars.Items.AddRange(server.Models);if(cars.Items.Count>0)cars.SelectedIndex=0;};
         join.Click+=(s,e)=>Run(Join);cancel.Click+=(s,e)=>{if(operation!=null)operation.Cancel();};Shown+=(s,e)=>Run(RefreshServers);
         FormClosing+=(s,e)=>{if(busy){e.Cancel=true;status.Text="Cancel the current operation or close the game before closing the launcher.";}};
     }
     static Button Button(string title,Action action){var b=new Button{Text=title,AutoSize=true};b.Click+=(s,e)=>action();return b;}
     public static void Open(string url){Process.Start(new ProcessStartInfo{FileName=url,UseShellExecute=true});}
-    async void Run(Func<Task> task){if(busy)return;busy=true;actions.Enabled=false;servers.Enabled=false;join.Enabled=false;cars.Enabled=false;cancel.Enabled=true;operation=new CancellationTokenSource();
-        try{await task();}catch(OperationCanceledException){status.Text="Cancelled. Completed assets and resumable downloads are retained.";}catch(Exception e){status.Text=e.Message;}finally{operation.Dispose();operation=null;busy=false;actions.Enabled=true;servers.Enabled=true;join.Enabled=true;cars.Enabled=true;cancel.Enabled=false;}}
-    async Task RefreshServers(){status.Text="Loading servers...";string selection=pending??(servers.SelectedItem as ServerEntry??new ServerEntry()).Id;var result=await api.Call("/v1/servers",null,operation.Token);var rows=Data.Array(result["servers"]).Select(ServerEntry.Parse).Where(s=>Games.All.Any(g=>g.Id==s.Game)).ToArray();servers.Items.Clear();servers.Items.AddRange(rows);var selected=rows.FirstOrDefault(s=>s.Id==selection);if(selected!=null)servers.SelectedItem=selected;else if(rows.Length>0)servers.SelectedIndex=0;if(!string.IsNullOrEmpty(pendingModel)&&cars.Items.Contains(pendingModel))cars.SelectedItem=pendingModel;pendingModel=null;pending=null;status.Text=rows.Length+" servers. Select a car and join; locations are saved in Settings.";if(api.Token!=null){try{var me=await api.Call("/v1/launcher/me",null,operation.Token);account.Text="Signed in as "+Data.Text(Data.Object(me["user"]),"name");}catch(IOException){account.Text="Sign in again to join.";}}}
+    async void Run(Func<Task> task){if(busy)return;busy=true;actions.Enabled=false;servers.Enabled=false;join.Enabled=false;cancel.Enabled=true;operation=new CancellationTokenSource();
+        try{await task();}catch(OperationCanceledException){status.Text="Cancelled. Completed assets and resumable downloads are retained.";}catch(Exception e){status.Text=e.Message;}finally{operation.Dispose();operation=null;busy=false;actions.Enabled=true;servers.Enabled=true;join.Enabled=true;cancel.Enabled=false;}}
+    async Task RefreshServers(){
+        status.Text="Loading servers...";string selection=pending??(servers.SelectedItem as ServerEntry??new ServerEntry()).Id;
+        var result=await api.Call("/v1/servers",null,operation.Token);var rows=Data.Array(result["servers"]).Select(ServerEntry.Parse).Where(s=>Games.All.Any(g=>g.Id==s.Game)).ToArray();servers.Items.Clear();servers.Items.AddRange(rows);
+        var selected=rows.FirstOrDefault(s=>s.Id==selection);if(selected!=null)servers.SelectedItem=selected;else if(rows.Length>0)servers.SelectedIndex=0;
+        status.Text=rows.Length+" servers. Select a server and click Join; game options follow.";bool signedIn=false;
+        if(api.Token!=null){try{var me=await api.Call("/v1/launcher/me",null,operation.Token);account.Text="Signed in as "+Data.Text(Data.Object(me["user"]),"name");signedIn=true;}catch(IOException){account.Text="Sign in again to join.";}}
+        // A website Join is already a join request. Continue into this game's options
+        // after sign-in, without requiring a second click in the server browser.
+        if(pending!=null&&selected==null){pending=null;status.Text="The requested server is no longer listed. Choose another server.";}
+        if(pending!=null&&selected!=null&&selected.Online&&signedIn){pending=null;BeginInvoke(new Action(()=>Run(Join)));}
+    }
     async Task SignIn(){
         var start=await api.Call("/v1/launcher/auth/start",new{},operation.Token);string code=Data.Text(start,"userCode"),device=Data.Text(start,"deviceCode"),url=Data.Text(start,"verificationUrl");
         if(!System.Text.RegularExpressions.Regex.IsMatch(code,@"\A[A-F0-9]{10}\z")||!System.Text.RegularExpressions.Regex.IsMatch(device,@"\A[A-Za-z0-9_-]{43}\z")||url!="https://matrixgames.app/launcher.html#code="+code)throw new IOException("Unexpected sign-in response");
@@ -46,8 +54,8 @@ public sealed class LauncherWindow : Form {
         for(int i=0;i<120;i++){await Task.Delay(5000,operation.Token);var reply=await api.Call("/v1/launcher/auth/poll",new{deviceCode=device},operation.Token);string token=Data.Text(reply,"token");if(token.Length==0)continue;if(!System.Text.RegularExpressions.Regex.IsMatch(token,@"\A[A-Za-z0-9_-]{43}\z"))throw new IOException("Invalid sign-in token");TokenStore.Save(token);api.Token=token;await RefreshServers();status.Text="Signed in. Select a server and join.";return;}throw new IOException("Sign-in expired. Try again.");
     }
     async Task Join(){
-        var server=servers.SelectedItem as ServerEntry;string model=cars.SelectedItem as string;if(server==null||model==null)throw new IOException("Select a server and car first");if(!server.Online)throw new IOException("This server is offline. Refresh to check again.");if(api.Token==null)throw new IOException("Sign in before joining a server.");
-        var game=Games.Resolve(server.Game);GameLocations locations;if(!settings.Games.TryGetValue(game.Id,out locations))throw new IOException("Set game locations in Settings first");game.ValidateLocations(locations);string steamId=game.AccountId();
+        var server=servers.SelectedItem as ServerEntry;if(server==null)throw new IOException("Select a server first");if(!server.Online)throw new IOException("This server is offline. Refresh to check again.");if(api.Token==null)throw new IOException("Sign in before joining a server.");
+        var game=Games.Resolve(server.Game);string model=game.SelectModel(this,server);if(model==null){status.Text="Join cancelled.";return;}GameLocations locations;if(!settings.Games.TryGetValue(game.Id,out locations))throw new IOException("Set game locations in Settings first");game.ValidateLocations(locations);string steamId=game.AccountId();
         // Keep one installation / game session active across launcher processes.
         using(var mutex=new Mutex(false,@"Local\MatrixGames.GameSession")){
             bool held=false;try{try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}if(!held)throw new IOException("Another launcher window is installing content or running a game.");
