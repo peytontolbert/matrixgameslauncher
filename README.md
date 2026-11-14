@@ -6,7 +6,7 @@ Choose a game, find a server, and join. Each game has its own integration for in
 
 ## Status
 
-This is the initial development version. The matching Matrix Games server-directory and account-handshake API must be deployed before online sign-in and joins work. Assetto Corsa is currently the only implemented game adapter. GTA and Halo are planned, not supported yet.
+The [hosted server directory](https://matrixgames.app/servers) and launcher account API are live. Download the [Windows launcher](https://matrixgames.app/driving/MatrixGamesLauncher.exe), or build it from source below. This is the initial release: Assetto Corsa is the only implemented game adapter. GTA and Halo are planned, not supported yet.
 
 ## How joining works
 
