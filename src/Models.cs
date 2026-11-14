@@ -16,12 +16,18 @@ public static class Data {
 }
 public sealed class AssetCheck {
     public string Path,Sha256;public long Bytes;
-    public bool Matches(string folder){string file=System.IO.Path.Combine(folder,Path);return File.Exists(file)&&new FileInfo(file).Length>0&&(Bytes==0||new FileInfo(file).Length==Bytes)&&(string.IsNullOrEmpty(Sha256)||ContentInstaller.HashFile(file)==Sha256);}
+    public string Problem(string folder){
+        string file=System.IO.Path.Combine(folder,Path);
+        try{if(!File.Exists(file))return Path+": missing";long size=new FileInfo(file).Length;if(size==0)return Path+": empty";if(Bytes>0&&size!=Bytes)return Path+": size differs (installed "+size+", required "+Bytes+" bytes)";if(!string.IsNullOrEmpty(Sha256)&&ContentInstaller.HashFile(file)!=Sha256)return Path+": checksum differs from server requirement";return null;}
+        catch(IOException){return Path+": could not read file";}catch(UnauthorizedAccessException){return Path+": access denied";}
+    }
+    public bool Matches(string folder){return Problem(folder)==null;}
 }
 public sealed class ContentPackage {
     public string Id,Kind,Sha256,Name,ArchiveRoot;public long Bytes,ExpandedBytes;public Uri Url;public AssetCheck[] Checks;
     public string Destination { get {return "content/"+(Kind=="car"?"cars/":"tracks/")+Id;} }
     public bool Matches(string folder){return Directory.Exists(folder)&&!(Kind=="car"&&Directory.Exists(System.IO.Path.Combine(folder,"data")))&&Checks.All(c=>c.Matches(folder));}
+    public string[] Problems(string folder){if(!Directory.Exists(folder))return new[]{"Content folder not found: "+folder};if(Kind=="car"&&Directory.Exists(System.IO.Path.Combine(folder,"data")))return new[]{"Unpacked data folder overrides the required car physics"};return Checks.Select(c=>c.Problem(folder)).Where(s=>s!=null).ToArray();}
     public static ContentPackage Parse(object value){
         var d=Data.Object(value);var p=new ContentPackage{Id=Data.Text(d,"id"),Kind=Data.Text(d,"kind"),Name=Data.Text(d,"name"),Sha256=Data.Text(d,"sha256"),ArchiveRoot=Data.Text(d,"archiveRoot"),Bytes=Convert.ToInt64(d["bytes"]),ExpandedBytes=Convert.ToInt64(d["expandedBytes"])};
         if(!Data.Id(p.Id)||!(p.Kind=="car"||p.Kind=="track")||!Regex.IsMatch(p.Sha256,"^[a-f0-9]{64}$")||p.Bytes<1||p.Bytes>20L*1024*1024*1024||p.ExpandedBytes<1||p.ExpandedBytes>50L*1024*1024*1024)throw new IOException("Invalid server asset proof");Data.SafePath(p.ArchiveRoot);

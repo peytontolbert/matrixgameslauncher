@@ -9,7 +9,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Win32;
 
 public sealed class GameLocations {
-    public string InstallDirectory="",DocumentsDirectory="";
+    public string InstallDirectory="",DocumentsDirectory="",ContentDirectory="";
 }
 public sealed class LauncherSettings {
     public string SteamDirectory="",DriverName="Driver",LibraryDirectory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"MatrixGames");

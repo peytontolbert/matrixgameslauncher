@@ -17,6 +17,7 @@ using Microsoft.Win32;
 public interface IGameAdapter {
     string Id {get;} string Name {get;} string DefaultDocuments {get;}
     string FindInstallation(string steam);
+    void ResolveLocations(LauncherSettings settings,GameLocations locations);
     void ValidateLocations(GameLocations locations);
     string AccountId();
     string SelectModel(IWin32Window owner,ServerEntry server);
@@ -38,9 +39,11 @@ public sealed class AssettoCorsa : IGameAdapter {
     public string DefaultDocuments {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Assetto Corsa");}}
     public string SelectModel(IWin32Window owner,ServerEntry server){using(var dialog=new AssettoCarWindow(server))return dialog.ShowDialog(owner)==DialogResult.OK?dialog.SelectedModel:null;}
     public string FindInstallation(string steam){
-        if(string.IsNullOrWhiteSpace(steam))return "";var candidates=new List<string>{Path.Combine(steam,"steamapps","common","assettocorsa")};
-        string libraries=Path.Combine(steam,"steamapps","libraryfolders.vdf");if(File.Exists(libraries))foreach(Match m in Regex.Matches(File.ReadAllText(libraries),"\"path\"\\s*\"([^\"]+)\""))candidates.Add(Path.Combine(m.Groups[1].Value.Replace("\\\\","\\"),"steamapps","common","assettocorsa"));
-        return candidates.FirstOrDefault(p=>File.Exists(Path.Combine(p,"acs.exe")))??"";
+        return ContentDiscovery.SteamInstallations(steam).FirstOrDefault()??"";
+    }
+    public void ResolveLocations(LauncherSettings settings,GameLocations locations){
+        if(string.IsNullOrWhiteSpace(locations.InstallDirectory)||!File.Exists(Path.Combine(locations.InstallDirectory,"acs.exe"))){string found=FindInstallation(settings.SteamDirectory);if(found.Length>0)locations.InstallDirectory=found;}
+        if(string.IsNullOrWhiteSpace(locations.DocumentsDirectory))locations.DocumentsDirectory=DefaultDocuments;
     }
     public void ValidateLocations(GameLocations locations){
         ContentInstaller.NoLinks(locations.InstallDirectory);ContentInstaller.NoLinks(locations.DocumentsDirectory);

@@ -10,11 +10,11 @@ The [hosted server directory](https://matrixgames.app/servers) and launcher acco
 
 ## How joining works
 
-1. Set your Steam folder, Matrix Games library folder, and the selected game's installation and documents folders once.
+1. Set your Steam folder, Matrix Games library folder, and the selected game's installation and documents folders once. Assetto Corsa can be found across the selected Steam folder's library list. An optional existing mods folder points to content you already downloaded elsewhere.
 2. Sign in through the Matrix Games website using Google, then approve the code shown by the launcher. Your Google password and Google tokens never enter the launcher.
 3. Click **Join** on an online server in the launcher or [matrixgames.app/servers](https://matrixgames.app/servers). For Assetto Corsa, the launcher then asks you to choose one of that server's cars.
-4. The launcher checks the server's required content against files already installed. Matching files are reused in place.
-5. If content is missing, review the server owner's download URLs, archive hashes, sizes, library location, and game destinations. Approve the installation to continue.
+4. The launcher checks the server's required content against files already installed. Matching files are reused in place. It also checks known content layouts in your saved installation, documents, mods, and library folders; compatible folders can be linked without copying, and verified existing archives can be installed without downloading again.
+5. If content needs installation or linking, review the exact local sources or server owner's download URLs, archive hashes, actual download size, and game destinations. Failed installed-file checks explain what differs. Approve the installation to continue.
 6. The launcher downloads and verifies the approved content, links it into the game, obtains a fresh join authorization, and starts the game.
 
 Steam and the game still verify ownership. You need a legitimate installation and any prerequisites required by the server, including Custom Shaders Patch when applicable. The launcher does not install Steam, CSP, paid DLC, or base games.
@@ -34,6 +34,8 @@ MatrixGames/
 ```
 
 Matching content in an existing game installation is left in place. Missing content is stored once in the library and connected to the game's normal content folder using Windows directory junctions. Servers requiring the same archive and content root reuse the same payload. Completed compressed downloads are removed; interrupted downloads can resume.
+
+The optional existing mods folder can contain `content/cars/<id>`, `content/tracks/<id>`, `cars/<id>`, `tracks/<id>`, or `<id>` directly. It can also be an individual asset folder. Archives named `<id>.7z`, `<id>.zip`, or `<id>.tar` are checked directly in selected roots, their `cars`/`tracks` folder, or their `downloads` folder. The launcher checks declared file requirements and archive hashes; it does not recursively scan whole disks or trust folder names alone. Keep externally linked source folders in place. Local archives are retained, and a changed local source stops installation instead of silently starting a network download.
 
 When a server requires a different version of a content folder, the previous folder is moved to `.matrixgames-backups` in the game installation before a new link is created. Backups are retained. Do not delete library objects that your games still link to. Automatic library garbage collection, uninstall, and repair are not implemented yet. Modified cached content is preserved and joining stops with an explanation.
 

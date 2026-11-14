@@ -62,6 +62,8 @@ Each asset describes a server-owner-provided HTTPS archive and the exact subtree
 
 This is a format example, not a downloadable asset. Use actual archive sizes and hashes. `expandedBytes` is the sum of uncompressed regular-file sizes across the **whole archive**, even when only a subtree is installed. `archiveRoot` is relative to the archive root; `checks` paths are relative to the installed subtree. Include required models, skins, and relevant resources. Car manifests must include a SHA-256 check for `data.acd`; track manifests require `data/surfaces.ini`. Track `kind` is `track`.
 
+Installed-file checks describe compatibility requirements, not every file shipped in the archive. Avoid making user-editable UI metadata, personal map/CSP settings, and license-file presence into exact-size requirements. Keep physics hashes and required models/resources checked. The full archive still requires its original exact size and SHA-256 when downloaded or installed from a local archive.
+
 The service canonicalizes manifests and returns a SHA-256 `revision`. `GET /v1/servers/<id>/manifest` requires authentication and returns `{ "server": "id", "manifest": { ... , "revision": "..." } }`. A join requires that same revision so content changes trigger another review.
 
 HTTPS downloads must resolve directly without redirects, credentials in URLs, or interactive authentication. HTTP Range responses are supported for resuming. Archives are bounded to 20 GiB compressed and 50 GiB expanded per asset. Unsafe Windows paths, links, duplicate destinations, and a size/hash mismatch are rejected. Only the declared subtree is extracted; bundled installers outside it are not run or installed. The owner supplies the CDN; the launcher has no built-in asset host.
