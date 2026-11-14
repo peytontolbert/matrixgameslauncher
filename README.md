@@ -6,7 +6,11 @@ Choose a game, find a server, and join. Each game has its own integration for in
 
 ## Status
 
-The [hosted server directory](https://matrixgames.app/servers) and launcher account API are live. Download the [Windows launcher](https://matrixgames.app/driving/MatrixGamesLauncher.exe), or build it from source below. This is the initial release: Assetto Corsa is the only implemented game adapter. GTA and Halo are planned, not supported yet.
+The [hosted server directory](https://matrixgames.app/servers) and launcher account API are live. Download the [Windows launcher](https://matrixgames.app/driving/MatrixGamesLauncher.exe), or build it from source below. Assetto Corsa is the released integration. This development branch adds a separate Matrix GTA client; it has not been released or validated inside GTA yet. Halo remains planned.
+
+The GTA preview targets the Steam edition of GTA V Legacy 1.0.3889.0. Join starts GTA Story Mode through Steam and connects a Matrix networking plugin to the selected Matrix server. It does not use FiveM or GTA Online. The initial shared session covers Legion Square, player/vehicle poses and chat; collisions, shared seats, combat and voice are disabled. The native game's ownership and login checks still apply.
+
+On first join, the launcher reviews missing script-runtime files, downloads pinned versions from the authors, verifies SHA-256, backs up replacements, and installs its bundled Matrix plugin. Script Hook V is downloaded directly from its author and is not redistributed. Runtime archives are cached in the selected Matrix library. Game map assets come from the user's GTA installation. GTA is launched with Story Mode and mod-compatible launch flags for this session; game executables and account settings are not replaced.
 
 ## How joining works
 
@@ -49,6 +53,8 @@ Requirements: 64-bit Windows with .NET Framework 4.8 and the Windows `tar.exe` t
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
 .\build\MatrixGamesLauncher.exe
 ```
+
+To include the GTA plugin, obtain the official ScriptHookVDotNet v3.7.0-nightly.204 SDK and pass its extracted directory with `-GtaSdkDirectory`. CI verifies its archive SHA-256 before compiling `native/gta/MatrixGtaClient.cs` and embedding the result. No game SDK binaries are committed. The normal build without that parameter remains usable for Assetto and explains that its GTA plugin is absent if a GTA join is requested.
 
 Open **Settings**, save your folders, and select **Enable browser joins**. This copies the executable to `%LocalAppData%\MatrixGames\Launcher` and registers `matrixgames://` links for your Windows account. Updating the executable requires running the new build and enabling browser joins again. Automatic updates and a signed installer are not included in this first version.
 
