@@ -67,7 +67,10 @@ public sealed class LauncherWindow : Form {
         using(var mutex=new Mutex(false,@"Local\MatrixGames.GameSession")){
             bool held=false;try{try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}if(!held)throw new IOException("Another launcher window is installing content or running a game.");
                 if(game.Id=="gta-v"){
-                    throw new IOException("The standalone Matrix GTA runtime is still in development and is unavailable in this build.");
+                    status.Text="Checking the Matrix GTA runtime...";
+                    var runtime=await Task.Run(()=>MatrixNativeRuntime.Inspect(MatrixNativeRuntime.Location(settings)));
+                    var permission=await api.Call("/v1/gta/runtime-ticket",new{server=server.Id},operation.Token);
+                    await runtime.Launch(permission,server,locations,message=>status.Text=message,operation.Token);return;
                 }
                 status.Text="Checking server assets...";var response=await api.Call("/v1/servers/"+server.Id+"/manifest",null,operation.Token);if(Data.Text(response,"server")!=server.Id)throw new IOException("Wrong server manifest");var manifest=AssetManifest.Parse(response["manifest"]);if(manifest.Game!=server.Game||!manifest.Assets.Any(p=>p.Kind=="track"&&p.Id==server.Track)||!server.Models.All(id=>manifest.Assets.Any(p=>p.Kind=="car"&&p.Id==id)))throw new IOException("Server manifest is incomplete");
                 var vault=new AssetVault(settings.LibraryDirectory);var plan=await Task.Run(()=>vault.Plan(locations.InstallDirectory,manifest,ContentDiscovery.SearchRoots(settings,locations)));operation.Token.ThrowIfCancellationRequested();

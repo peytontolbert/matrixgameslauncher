@@ -13,8 +13,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-// This adapter starts GTA V Story Mode with the Matrix networking plugin.
-// FiveM is neither installed nor invoked. Server manifests cannot name programs.
+// Matrix Games Launcher owns GTA joining through its separately installed engine
+// runtime. Server manifests cannot name programs or arbitrary launch arguments.
 public sealed class GtaV : IGameAdapter {
     public string Id {get{return "gta-v";}} public string Name {get{return "GTA V · Matrix client";}}
     public string DefaultDocuments {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Rockstar Games","GTA V");}}
@@ -28,12 +28,11 @@ public sealed class GtaV : IGameAdapter {
     public void ValidateLocations(GameLocations locations){
         ContentInstaller.NoLinks(locations.InstallDirectory);string exe=Path.Combine(locations.InstallDirectory,"GTA5.exe");
         if(!File.Exists(exe))throw new IOException("Select your GTA V Legacy folder containing GTA5.exe in Settings.");
-        if(FileVersionInfo.GetVersionInfo(exe).FileVersion!="1.0.3889.0")throw new IOException("This Matrix client preview supports GTA V Legacy 1.0.3889.0. A matching client is required for other game builds.");
-        if(Process.GetProcessesByName("GTA5").Any())throw new IOException("Exit GTA V before joining a Matrix server.");
-        if(File.Exists(Path.Combine(locations.InstallDirectory,"dsound.dll"))||File.Exists(Path.Combine(locations.InstallDirectory,"ScriptHookVDotNet.asi")))throw new IOException("An older script loader is installed. Resolve the loader conflict before installing this Matrix client; existing files were left unchanged.");
+        if(Process.GetProcessesByName("GTA5").Any(p=>!p.HasExited))throw new IOException("Exit GTA V before joining a Matrix server.");
     }
     public string AccountId(){return "";}
     public string SelectModel(IWin32Window owner,ServerEntry server,ContentPlan plan){return "default";}
+#if MATRIX_STORY_EXPERIMENT
     public static void ValidateGrant(Dictionary<string,object> grant,string server){
         string endpoint=Data.Text(grant,"endpoint");long ttl=Convert.ToInt64(grant["expiresAt"])-DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if(Convert.ToInt32(grant["schema"])!=1||Data.Text(grant,"game")!="gta-v"||Data.Text(grant,"server")!=server||server!="managed-gta-legion"||Data.Text(grant,"room")!="gta-legion"||Data.Text(grant,"revision")!="los-santos-legion-v1"||Data.Text(grant,"client")!="native"||endpoint!="wss://api.matrixgames.app/v1/gta/native-socket"||!Regex.IsMatch(Data.Text(grant,"ticket"),@"\A[A-Za-z0-9_-]{43}\z")||ttl<=0||ttl>300000)throw new IOException("Invalid or expired GTA join permission");
@@ -41,25 +40,14 @@ public sealed class GtaV : IGameAdapter {
     // Let Rockstar perform its normal ownership check. Forcing offline mode
     // prevents first-run activation even when Steam and the user are online.
     public static string LaunchArguments {get{return "-applaunch 271590 -nobattleye -noBE";}}
+#endif
     public async Task Launch(Dictionary<string,object> grant,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel){
-        ValidateGrant(grant,server.Id);var location=settings.Games[Id];ValidateLocations(location);
-        string steam=Path.Combine(settings.SteamDirectory,"steam.exe");if(!File.Exists(steam))throw new IOException("Set your Steam folder in Settings. This preview supports the Steam edition of GTA V Legacy.");
-        if(GtaRuntime.Missing(location.InstallDirectory).Length>0)throw new IOException("The Matrix GTA runtime is incomplete.");
-        string folder=Path.GetDirectoryName(LauncherSettings.SettingsPath),file=Path.Combine(folder,"gta-join.bin");ContentInstaller.NoLinks(file);Directory.CreateDirectory(folder);
-        var envelope=new Dictionary<string,object>(grant);envelope["gameExecutable"]=Path.GetFullPath(Path.Combine(location.InstallDirectory,"GTA5.exe"));
-        byte[] protectedBytes=ProtectedData.Protect(Encoding.UTF8.GetBytes(Data.Json.Serialize(envelope)),Encoding.UTF8.GetBytes("MatrixGames.Gta.Join.v1"),DataProtectionScope.CurrentUser);
-        string temporary=file+"."+Guid.NewGuid().ToString("N")+".new";File.WriteAllBytes(temporary,protectedBytes);
-        if(File.Exists(file))File.Replace(temporary,file,null);else File.Move(temporary,file);
-        try{
-            cancel.ThrowIfCancellationRequested();Process.Start(new ProcessStartInfo{FileName=steam,Arguments=LaunchArguments,WorkingDirectory=settings.SteamDirectory,UseShellExecute=false});
-            report("Starting GTA V Story Mode with the Matrix client...");Process game=null;
-            for(int i=0;i<180&&game==null;i++){await Task.Delay(1000,cancel);game=Process.GetProcessesByName("GTA5").FirstOrDefault();}
-            if(game==null)throw new IOException("GTA V did not start. Check Steam or Rockstar Launcher, then join again.");
-            using(game){report("GTA V is running. The Matrix client will connect when Story Mode loads.");await Task.Run(()=>game.WaitForExit());}
-            report("GTA session ended.");
-        }finally{if(File.Exists(file)&&File.ReadAllBytes(file).SequenceEqual(protectedBytes))File.Delete(file);}
+        var location=settings.Games[Id];ValidateLocations(location);
+        var runtime=await Task.Run(()=>MatrixNativeRuntime.Inspect(MatrixNativeRuntime.Location(settings)));
+        await runtime.Launch(grant,server,location,report,cancel);
     }
 }
+#if MATRIX_STORY_EXPERIMENT
 public static class GtaRuntime {
     sealed class Part {public string Archive,Target,Hash;public Part(string archive,string target,string hash){Archive=archive;Target=target;Hash=hash;}}
     sealed class Package {public string Url,Hash;public Part[] Parts;}
@@ -112,3 +100,4 @@ public static class GtaRuntime {
         if(existed){Directory.CreateDirectory(Path.GetDirectoryName(saved));File.Copy(path,saved,false);}changes.Add(Tuple.Create(path,saved,existed));File.WriteAllBytes(path,bytes);
     }
 }
+#endif

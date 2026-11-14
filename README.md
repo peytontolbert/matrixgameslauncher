@@ -8,7 +8,7 @@ Choose a game, find a server, and join. Each game has its own integration for in
 
 The [hosted server directory](https://matrixgames.app/servers) and launcher account API are live. Download the [Windows launcher](https://matrixgames.app/driving/MatrixGamesLauncher.exe), or build it from source below. Assetto Corsa is the released integration. This development branch adds a separate Matrix GTA client; it has not been released or validated inside GTA yet. Halo remains planned.
 
-The requested GTA integration is a separately installed Matrix client framework that controls game startup, server admission, resource loading and the shared session. That runtime is not complete. The code in `native/gta` is an earlier Script Hook V networking experiment; it does not satisfy the standalone framework requirement and is not a release candidate.
+GTA joins now target the separate `MatrixGtaRuntime.exe` engine runtime in the selected library's `runtimes/gta-v` folder. Matrix Games Launcher owns server selection and account UI, verifies the runtime file manifest, and sends an encrypted, single-use join grant bound to the selected server, game installation, runtime folder and GTA build. The runtime is derived from the reviewed NexusAI CitizenFX source, with its upstream notices retained. It is still in development: a complete runtime package and an in-game browser/native join have not yet passed validation.
 
 The earlier experiment's installer, transport and game script remain available for reference and isolated tests. Its first in-game attempt loaded Script Hook V but stopped at Rockstar's offline activation check before the Matrix script ran. Socket tests with simulated browser clients are not evidence of a working GTA game session. The experiment has not been published, and normal launcher joins do not install it.
 
@@ -54,7 +54,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
 .\build\MatrixGamesLauncher.exe
 ```
 
-For isolated work on the earlier GTA experiment, `-GtaSdkDirectory` accepts the extracted ScriptHookVDotNet v3.7.0-nightly.204 SDK. This optional build does not enable normal GTA joins. CI builds the general launcher without that experiment; no game SDK binaries are committed.
+The launcher build contains no game SDK or mod-loader binaries. `-NativeSessionTest <path>` additionally runs the launcher/runtime encrypted handoff tests against the separately compiled native session test executable.
 
 Open **Settings**, save your folders, and select **Enable browser joins**. This copies the executable to `%LocalAppData%\MatrixGames\Launcher` and registers `matrixgames://` links for your Windows account. Updating the executable requires running the new build and enabling browser joins again. Automatic updates and a signed installer are not included in this first version.
 

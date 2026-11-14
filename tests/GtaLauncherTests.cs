@@ -1,3 +1,4 @@
+#if MATRIX_STORY_EXPERIMENT
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,3 +25,5 @@ class GtaLauncherTests {
         Console.WriteLine("PASS: GTA grants, direct launch arguments, verified cached installation, backups and reuse. Fixture: "+root);return 0;
     }catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }
+
+#endif
