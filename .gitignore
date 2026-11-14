@@ -1,0 +1,10 @@
+/build/
+*.user
+*.suo
+*.7z
+*.zip
+*.exe
+*.pdb
+.env*
+session.bin
+settings.json
