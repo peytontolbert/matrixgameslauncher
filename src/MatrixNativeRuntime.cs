@@ -57,8 +57,11 @@ public sealed class MatrixNativeRuntime {
         string exe=Path.Combine(installed,"GTA5.exe");if(!File.Exists(exe))throw new IOException("Select your installed GTA V Legacy folder in Settings.");
         if(FileVersionInfo.GetVersionInfo(exe).FileVersion!="1.0."+build+".0")throw new IOException("The selected server and installed GTA build do not match.");
         if(installed.Any(char.IsControl)||game.DocumentsDirectory.Any(char.IsControl))throw new IOException("Invalid GTA location");
+        string saves=Path.GetFullPath(Path.Combine(game.DocumentsDirectory,"MatrixGames"));ContentInstaller.NoLinks(saves);
+        if(Encoding.UTF8.GetByteCount(saves)>180)throw new IOException("Select a shorter GTA documents path in Settings so the game can save its profile.");
+        Directory.CreateDirectory(saves);
         string ini=Path.Combine(Root,"CitizenFX.ini");ContentInstaller.NoLinks(ini);
-        if(!WritePrivateProfileString("Game","IVPath",installed,ini)||!WritePrivateProfileString("Game","SavedBuildNumber",build.ToString(),ini))throw new IOException("Could not save the Matrix runtime game location");
+        if(!WritePrivateProfileString("Game","IVPath",installed,ini)||!WritePrivateProfileString("Game","SavedBuildNumber",build.ToString(),ini)||!WritePrivateProfileString("Matrix","SavePath",saves,ini))throw new IOException("Could not save the Matrix runtime game locations");
         string folder=Path.Combine(Path.GetDirectoryName(LauncherSettings.SettingsPath),"sessions");ContentInstaller.NoLinks(folder);Directory.CreateDirectory(folder);
         string session=Guid.NewGuid().ToString("N"),file=Path.Combine(folder,session+".bin"),status=file+".status.json";
         byte[] bytes=ProtectSession(grant,session,installed,Root);using(var output=new FileStream(file,FileMode.CreateNew,FileAccess.Write,FileShare.None))output.Write(bytes,0,bytes.Length);
@@ -66,7 +69,9 @@ public sealed class MatrixNativeRuntime {
             cancel.ThrowIfCancellationRequested();using(var host=Process.Start(new ProcessStartInfo{FileName=Path.Combine(Root,"MatrixGtaRuntime.exe"),Arguments="--matrix-session "+session+" -b"+build,WorkingDirectory=Root,UseShellExecute=false})){
                 report("Starting the Matrix GTA runtime...");
                 for(int i=0;i<180;i++){
-                    await Task.Delay(1000,cancel);if(!File.Exists(status))continue;
+                    await Task.Delay(1000,cancel);
+                    if(host.HasExited&&host.ExitCode!=0)throw new IOException("The Matrix GTA runtime exited during startup (code "+host.ExitCode+"). Check its log, then join again.");
+                    if(!File.Exists(status))continue;
                     ContentInstaller.NoLinks(status);if(new FileInfo(status).Length>4096)throw new IOException("Invalid native startup response");
                     Dictionary<string,object> response;try{response=Data.Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(status));}catch(ArgumentException){continue;}catch(IOException){continue;}
                     if(Data.Text(response,"session")!=session||Data.Text(response,"runtime")!=Id||Data.Text(response,"state")!="connecting")throw new IOException("Invalid native startup response");
