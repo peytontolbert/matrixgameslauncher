@@ -62,6 +62,9 @@ public sealed class AssettoCorsa : IGameAdapter {
         string password=Data.Text(d,"password");if(remaining<=0||remaining>600000||schema==2&&!Regex.IsMatch(password,@"\Amg1\.[A-Za-z0-9_-]{1,180}\.[A-Za-z0-9_-]{43}\z")||schema==3&&password.Length!=0)throw new IOException("Join permission expired or invalid. Join again.");
     }
     public static string RaceConfig(Dictionary<string,object> d,string driver,string account,string skin,string features){
+        string publicName=Data.Text(d,"displayName");
+        if(string.IsNullOrEmpty(publicName)||!Regex.IsMatch(publicName,@"\A[A-Za-z0-9][A-Za-z0-9 ._-]{0,22}[A-Za-z0-9]\z"))throw new IOException("The server did not provide your Matrix Games display name. Update the launcher and join again.");
+        driver=publicName;
         Plain(driver);if(driver.Length>32||!Regex.IsMatch(account,@"\A7656119[0-9]{10}\z")||!Data.Id(skin)||!Data.Id(Data.Text(d,"track"))||!Data.Id(Data.Text(d,"model")))throw new IOException("Invalid driver, account or content name");
         string password=Data.Text(d,"password");if(password.Length>0)Plain(password);Plain(Data.Text(d,"host"));
         if(features.Length>4096||features.Split(',').Any(f=>f.Length>0&&!Regex.IsMatch(f,@"\A[A-Z0-9_]{1,64}\z")))throw new IOException("Invalid server features");
