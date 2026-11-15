@@ -38,7 +38,7 @@ public sealed class ContentPackage {
 }
 public sealed class AssetManifest {
     public string Game,Revision;public ContentPackage[] Assets;
-    public static AssetManifest Parse(object value){var d=Data.Object(value);var m=new AssetManifest{Game=Data.Text(d,"game"),Revision=Data.Text(d,"revision")};if(Convert.ToInt32(d["schema"])!=1||m.Game!="assetto-corsa"||!Regex.IsMatch(m.Revision,"^[a-f0-9]{64}$"))throw new IOException("Unsupported asset manifest");m.Assets=Data.Array(d["assets"]).Select(ContentPackage.Parse).ToArray();if(m.Assets.Length<1||m.Assets.Length>64||m.Assets.Select(a=>a.Kind+":"+a.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=m.Assets.Length)throw new IOException("Invalid asset list");return m;}
+    public static AssetManifest Parse(object value){var d=Data.Object(value);var m=new AssetManifest{Game=Data.Text(d,"game"),Revision=Data.Text(d,"revision")};if(Convert.ToInt32(d["schema"])!=1||m.Game!="assetto-corsa"||!Regex.IsMatch(m.Revision,"^[a-f0-9]{64}$"))throw new IOException("Unsupported asset manifest");m.Assets=Data.Array(d["assets"]).Select(ContentPackage.Parse).ToArray();if(m.Assets.Length<1||m.Assets.Length>256||m.Assets.Select(a=>a.Kind+":"+a.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=m.Assets.Length)throw new IOException("Invalid asset list");return m;}
 }
 public sealed class ServerEntry {
     public Dictionary<string,string> ModelNames=new Dictionary<string,string>();
