@@ -17,7 +17,7 @@ using System.Windows.Forms;
 // runtime. Server manifests cannot name programs or arbitrary launch arguments.
 public sealed class GtaV : IGameAdapter {
     public string Id {get{return "gta-v";}} public string Name {get{return "GTA V · Matrix client";}}
-    public string DefaultDocuments {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Rockstar Games","GTA V");}}
+    public string DefaultDocuments {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"MatrixGames","GTA V");}}
     public string FindInstallation(string steam){
         if(string.IsNullOrWhiteSpace(steam))return "";
         var roots=new List<string>{Path.GetFullPath(steam)};string index=Path.Combine(steam,"steamapps","libraryfolders.vdf");

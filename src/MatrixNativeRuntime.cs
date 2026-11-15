@@ -61,7 +61,7 @@ public sealed class MatrixNativeRuntime {
         if(Encoding.UTF8.GetByteCount(saves)>180)throw new IOException("Select a shorter GTA documents path in Settings so the game can save its profile.");
         Directory.CreateDirectory(saves);
         string ini=Path.Combine(Root,"CitizenFX.ini");ContentInstaller.NoLinks(ini);
-        if(!WritePrivateProfileString("Game","IVPath",installed,ini)||!WritePrivateProfileString("Game","SavedBuildNumber",build.ToString(),ini)||!WritePrivateProfileString("Matrix","SavePath",saves,ini))throw new IOException("Could not save the Matrix runtime game locations");
+        if(!WritePrivateProfileString("Game","IVPath",installed,ini)||!WritePrivateProfileString("Game","SavedBuildNumber",build.ToString(),ini)||!WritePrivateProfileString("Game","DefaultBuild",build.ToString(),ini)||!WritePrivateProfileString("Matrix","SavePath",saves,ini))throw new IOException("Could not save the Matrix runtime game locations");
         string folder=Path.Combine(Path.GetDirectoryName(LauncherSettings.SettingsPath),"sessions");ContentInstaller.NoLinks(folder);Directory.CreateDirectory(folder);
         string session=Guid.NewGuid().ToString("N"),file=Path.Combine(folder,session+".bin"),status=file+".status.json";
         byte[] bytes=ProtectSession(grant,session,installed,Root);using(var output=new FileStream(file,FileMode.CreateNew,FileAccess.Write,FileShare.None))output.Write(bytes,0,bytes.Length);

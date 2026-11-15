@@ -68,6 +68,12 @@ public sealed class LauncherWindow : Form {
             bool held=false;try{try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}if(!held)throw new IOException("Another launcher window is installing content or running a game.");
                 if(game.Id=="gta-v"){
                     status.Text="Checking the Matrix GTA runtime...";
+                    string runtimeFolder=MatrixNativeRuntime.Location(settings);
+                    if(!Directory.Exists(runtimeFolder)){
+                        if(MessageBox.Show(this,"Install the Matrix GTA client framework?\n\nDownload: "+(RuntimeInstaller.DownloadBytes/1024/1024)+" MB\nLocation: "+runtimeFolder+"\n\nYour installed GTA files are reused. This framework is separate from server-owner mods.","Matrix GTA runtime",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK){status.Text="Runtime installation cancelled.";return;}
+                        var runtimeProgress=new Progress<InstallProgress>(p=>status.Text=p.Message+(p.Total>0?" ("+(p.Done*100/p.Total)+"%)":""));
+                        await RuntimeInstaller.Install(settings,api,runtimeProgress,operation.Token);
+                    }
                     var runtime=await Task.Run(()=>MatrixNativeRuntime.Inspect(MatrixNativeRuntime.Location(settings)));
                     var permission=await api.Call("/v1/gta/runtime-ticket",new{server=server.Id},operation.Token);
                     await runtime.Launch(permission,server,locations,message=>status.Text=message,operation.Token);return;
