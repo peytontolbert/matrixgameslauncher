@@ -28,7 +28,7 @@ public static class Games {
     public static IGameAdapter Resolve(string id){var game=All.FirstOrDefault(g=>g.Id==id);if(game==null)throw new IOException("This game does not have an installed launcher integration yet");return game;}
 }
 public static class JoinLink {
-    static Match Parse(string link){return Regex.Match(link??"",@"\Amatrixgames://join\?game=([a-z0-9-]+)&server=([A-Za-z0-9_-]{1,80})\z");}
+    static Match Parse(string link){return Regex.Match(link??"",@"\Amatrixgames://join/?\?game=([a-z0-9-]+)&server=([A-Za-z0-9_-]{1,80})\z");}
     public static string Server(string link){
         var match=Parse(link);
         if(!match.Success)throw new IOException("Invalid join link. Open matrixgames.app/servers and choose a server.");Games.Resolve(match.Groups[1].Value);return match.Groups[2].Value;
@@ -56,7 +56,7 @@ public sealed class AssettoCorsa : IGameAdapter {
     static int Port(object value){int p=Convert.ToInt32(value);if(p<1||p>65535)throw new IOException("Invalid server port");return p;}
     public static void ValidateGrant(Dictionary<string,object> d,ServerEntry server,string model){
         int schema=Convert.ToInt32(d["schema"]);string host=Data.Text(d,"host");
-        if(!(schema==2||schema==3)||Data.Text(d,"game")!=server.Game||Data.Text(d,"server")!=server.Id||Data.Text(d,"track")!=server.Track||Data.Text(d,"model")!=model||!server.Models.Contains(model)||!Data.Id(model)||!Data.Id(server.Track))throw new IOException("The server join response does not match your selection");
+        if(!(schema==2||schema==3)||Data.Text(d,"game")!=server.Game||Data.Text(d,"server")!=server.Id||Data.Text(d,"track")!=server.Track||Data.Text(d,"model")!=model||!server.Models.Contains(model)||!Data.Id(model)||!Data.ContentId(server.Track)||Data.Text(d,"layout")!=server.Layout)throw new IOException("The server join response does not match your selection");
         if(host.Length>253||!host.Contains('.')||!host.Split('.').All(p=>Regex.IsMatch(p,"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")))throw new IOException("Invalid server address");
         Port(d["gamePort"]);Port(d["httpPort"]);double remaining=Convert.ToDouble(d["expiresAt"])-DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         string password=Data.Text(d,"password");if(remaining<=0||remaining>600000||schema==2&&!Regex.IsMatch(password,@"\Amg1\.[A-Za-z0-9_-]{1,180}\.[A-Za-z0-9_-]{43}\z")||schema==3&&password.Length!=0)throw new IOException("Join permission expired or invalid. Join again.");
@@ -65,17 +65,17 @@ public sealed class AssettoCorsa : IGameAdapter {
         string publicName=Data.Text(d,"displayName");
         if(string.IsNullOrEmpty(publicName)||!Regex.IsMatch(publicName,@"\A[A-Za-z0-9][A-Za-z0-9 ._-]{0,22}[A-Za-z0-9]\z"))throw new IOException("The server did not provide your Matrix Games display name. Update the launcher and join again.");
         driver=publicName;
-        Plain(driver);if(driver.Length>32||!Regex.IsMatch(account,@"\A7656119[0-9]{10}\z")||!Data.Id(skin)||!Data.Id(Data.Text(d,"track"))||!Data.Id(Data.Text(d,"model")))throw new IOException("Invalid driver, account or content name");
+        Plain(driver);if(driver.Length>32||!Regex.IsMatch(account,@"\A7656119[0-9]{10}\z")||!Data.Id(skin)||!Data.ContentId(Data.Text(d,"track"))||Data.Text(d,"layout").Length>0&&!Data.ContentId(Data.Text(d,"layout"))||!Data.Id(Data.Text(d,"model")))throw new IOException("Invalid driver, account or content name");
         string password=Data.Text(d,"password");if(password.Length>0)Plain(password);Plain(Data.Text(d,"host"));
         if(features.Length>4096||features.Split(',').Any(f=>f.Length>0&&!Regex.IsMatch(f,@"\A[A-Z0-9_]{1,64}\z")))throw new IOException("Invalid server features");
-        return "[HEADER]\r\nVERSION=2\r\n__CM_FEATURE_SET=2\r\n[RACE]\r\nTRACK="+d["track"]+"\r\nCONFIG_TRACK=\r\nMODEL="+d["model"]+"\r\nMODEL_CONFIG=\r\nCARS=1\r\nAI_LEVEL=98\r\nFIXED_SETUP=0\r\nPENALTIES=0\r\n[REMOTE]\r\nACTIVE=1\r\n__CM_EXTENDED=1\r\n__FEATURES="+features+"\r\nSERVER_IP="+d["host"]+"\r\nSERVER_PORT="+Port(d["gamePort"])+"\r\nSERVER_HTTP_PORT="+Port(d["httpPort"])+"\r\nREQUESTED_CAR="+d["model"]+"\r\nNAME="+driver+"\r\nGUID="+account+"\r\nTEAM=\r\nPASSWORD="+password+"\r\n[CAR_0]\r\nMODEL=-\r\nSKIN="+skin+"\r\nDRIVER_NAME="+driver+"\r\nNATIONALITY=USA\r\n[SESSION_0]\r\nNAME=Practice\r\nTYPE=1\r\nDURATION_MINUTES=0\r\nSPAWN_SET=PIT\r\n[REPLAY]\r\nACTIVE=0\r\n[GHOST_CAR]\r\nRECORDING=0\r\nPLAYING=0\r\n[WEATHER]\r\nNAME=3_clear\r\n[TEMPERATURE]\r\nAMBIENT=26\r\nROAD=32\r\n[LIGHTING]\r\nSUN_ANGLE=6\r\nTIME_MULT=1\r\n";
+        return "[HEADER]\r\nVERSION=2\r\n__CM_FEATURE_SET=2\r\n[RACE]\r\nTRACK="+d["track"]+"\r\nCONFIG_TRACK="+Data.Text(d,"layout")+"\r\nMODEL="+d["model"]+"\r\nMODEL_CONFIG=\r\nCARS=1\r\nAI_LEVEL=98\r\nFIXED_SETUP=0\r\nPENALTIES=0\r\n[REMOTE]\r\nACTIVE=1\r\n__CM_EXTENDED=1\r\n__FEATURES="+features+"\r\nSERVER_IP="+d["host"]+"\r\nSERVER_PORT="+Port(d["gamePort"])+"\r\nSERVER_HTTP_PORT="+Port(d["httpPort"])+"\r\nREQUESTED_CAR="+d["model"]+"\r\nNAME="+driver+"\r\nGUID="+account+"\r\nTEAM=\r\nPASSWORD="+password+"\r\n[CAR_0]\r\nMODEL=-\r\nSKIN="+skin+"\r\nDRIVER_NAME="+driver+"\r\nNATIONALITY=USA\r\n[SESSION_0]\r\nNAME=Practice\r\nTYPE=1\r\nDURATION_MINUTES=0\r\nSPAWN_SET=PIT\r\n[REPLAY]\r\nACTIVE=0\r\n[GHOST_CAR]\r\nRECORDING=0\r\nPLAYING=0\r\n[WEATHER]\r\nNAME=3_clear\r\n[TEMPERATURE]\r\nAMBIENT=26\r\nROAD=32\r\n[LIGHTING]\r\nSUN_ANGLE=6\r\nTIME_MULT=1\r\n";
     }
     public async Task Launch(Dictionary<string,object> d,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel){
         ValidateGrant(d,server,model);var locations=settings.Games[Id];ValidateLocations(locations);report("Checking the native server...");
         if(Convert.ToInt32(d["schema"])==2&&(!File.Exists(Path.Combine(locations.InstallDirectory,"dwrite.dll"))||!Directory.Exists(Path.Combine(locations.InstallDirectory,"extension"))))throw new IOException("This server requires Custom Shaders Patch. Install CSP in your Assetto Corsa folder before joining.");
         var origin="http://"+d["host"]+":"+Port(d["httpPort"]);
-        var info=await ApiClient.Request(new Uri(origin+"/INFO"),null,null,cancel);string advertised=Data.Text(info,"track");var csp=Regex.Match(advertised,@"\Acsp/[0-9]+/\.\./([A-Za-z0-9_-]+)\z");if(csp.Success)advertised=csp.Groups[1].Value;
-        if(advertised!=server.Track)throw new IOException("Server track changed. Refresh the server list.");
+        var info=await ApiClient.Request(new Uri(origin+"/INFO"),null,null,cancel);string advertised=Data.Text(info,"track");var csp=Regex.Match(advertised,@"\Acsp/[0-9]+/\.\./(.+)\z");if(csp.Success)advertised=csp.Groups[1].Value;
+        if(advertised!=server.Track+(server.Layout.Length>0?"-"+server.Layout:""))throw new IOException("Server track changed. Refresh the server list.");
         string features="";if(Convert.ToInt32(d["schema"])==2){var details=await ApiClient.Request(new Uri(origin+"/JSON%7C0"),null,null,cancel);object raw;if(details.TryGetValue("Features",out raw))features=string.Join(",",Data.Array(raw).Select(Convert.ToString));}
         string skins=Path.Combine(locations.InstallDirectory,"content","cars",model,"skins");string skin=Directory.Exists(skins)?Directory.GetDirectories(skins).Select(Path.GetFileName).Where(Data.Id).OrderBy(n=>n).FirstOrDefault():null;if(skin==null)throw new IOException("This car needs an installed skin");
         ValidateGrant(d,server,model);cancel.ThrowIfCancellationRequested();string config=RaceConfig(d,settings.DriverName,account,skin,features),cfg=Path.Combine(locations.DocumentsDirectory,"cfg"),path=Path.Combine(cfg,"race.ini");ContentInstaller.NoLinks(path);Directory.CreateDirectory(cfg);
@@ -94,7 +94,7 @@ public sealed class AssettoCarWindow : Form {
     public static string Requirements(ContentPlan plan){
         if(plan==null)return "Required assets will be checked before joining.";
         var lines=new List<string>{"Required assets: "+plan.Manifest.Assets.Length+" | Download: "+(plan.DownloadBytes/1024.0/1024/1024).ToString("0.00")+" GB", "All server cars are needed to see other players, plus the track and traffic assets.", ""};
-        foreach(var p in plan.Manifest.Assets){var choice=plan.Choices.FirstOrDefault(c=>c.Package==p);string state=choice==null?"Installed":choice.Folder!=null?"Reuse existing folder":choice.Archive!=null?"Install existing archive":"Download "+(p.Bytes/1024/1024)+" MB";lines.Add(state+" | "+p.Kind+" | "+p.Name);}
+        foreach(var p in plan.Manifest.Assets){var choice=plan.Choices.FirstOrDefault(c=>c.Package==p);string state=choice==null?"Installed":choice.Folder!=null?"Reuse existing folder":choice.Archive!=null?"Install existing archive":p.InstalledOnly?"Install through Steam or track owner":"Download "+(p.Bytes/1024/1024)+" MB";lines.Add(state+" | "+p.Kind+" | "+p.Name);}
         return string.Join("\r\n",lines);
     }
     public AssettoCarWindow(ServerEntry server,ContentPlan plan=null){
