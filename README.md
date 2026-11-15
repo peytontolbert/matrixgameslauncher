@@ -14,6 +14,8 @@ Matrix Games Launcher owns server selection and account UI and sends an encrypte
 
 ## How joining works
 
+Managed Assetto map servers can expose an owner-controlled map selector on the server directory. Switching maps restarts that server and disconnects its players. The launcher checks the selected track and layout against your saved content folders. Installed-only maps must already be owned and installed through Steam or their publisher; the launcher reuses matching files and does not offer invented download links. Server-provided car and track download packages still require your review before installation.
+
 1. Set your Steam folder, Matrix Games library folder, and the selected game's installation and documents folders once. Assetto Corsa can be found across the selected Steam folder's library list. An optional existing mods folder points to content you already downloaded elsewhere.
 2. Sign in through the Matrix Games website using Google, then approve the code shown by the launcher. Your Google password and Google tokens never enter the launcher.
 3. Click **Join** on an online server in the launcher or [matrixgames.app/servers](https://matrixgames.app/servers). The server list shows the game, track and offered cars. For Assetto Corsa, the launcher then opens a car chooser with the complete required-asset list, installed/reusable/download status, and actual download size.

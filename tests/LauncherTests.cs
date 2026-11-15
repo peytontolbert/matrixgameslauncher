@@ -13,10 +13,14 @@ public static class LauncherTests {
     static ContentPackage Package(string id,string source){return new ContentPackage{Id=id,Name=id,Kind="car",ArchiveRoot=id,Url=new Uri("https://assets.example.test/car.7z"),Sha256=new string('a',64),Bytes=1,ExpandedBytes=3,Checks=new[]{new AssetCheck{Path="data.acd",Sha256=ContentInstaller.HashFile(Path.Combine(source,"data.acd")),Bytes=3}}};}
     public static int Main(string[] args){try{
         if(args.Length!=1||!Path.IsPathRooted(args[0]))throw new Exception("Pass an absolute scratch directory");string root=Path.Combine(args[0],Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
+        MapLauncherTests.Run(root);
         foreach(string bad in new[]{"../outside","root/../../outside","C:/outside","root/file:ads","root/CON.txt","root/file.","root/sub\\file","root/a\nb"})Reject(()=>ContentInstaller.ArchiveName(bad,"root"),"Unsafe archive path accepted");
         ContentInstaller.ArchiveName("root/skins/blue skin/body.dds","root");count++;
         foreach(string bad in new[]{"matrixgames://join?game=assetto-corsa&server=a&host=evil","matrixgames://join?game=halo&server=a","matrixgames://join?game=assetto-corsa&server=a\n","https://join?game=assetto-corsa&server=a"})Reject(()=>JoinLink.Server(bad),"Unsafe protocol accepted");
         Assert(JoinLink.Server("matrixgames://join?game=assetto-corsa&server=managed-110")=="managed-110","Join link failed");
+        Assert(JoinLink.Server(new Uri("matrixgames://join?game=assetto-corsa&server=managed-nohesi-110").AbsoluteUri)=="managed-nohesi-110","Windows-normalized browser join link failed");
+        Assert(JoinLink.Server("matrixgames://join/?game=gta-v&server=managed-gta-legion")=="managed-gta-legion","Normalized GTA link failed");
+        foreach(string bad in new[]{"matrixgames://join//?game=assetto-corsa&server=a","matrixgames://join/other?game=assetto-corsa&server=a","matrixgames://join/?game=assetto-corsa&server=a&host=evil","matrixgames://join/?game=assetto-corsa&server=a#fragment"})Reject(()=>JoinLink.Server(bad),"Unsafe normalized link accepted");
         Reject(()=>JoinLink.Server("matrixgames://join?game=assetto-corsa&server=managed-110&model=car_one"),"Car selection belongs to the game's join step");
         Assert(Program.ProtocolCommand(@"C:\Test User\Launcher.exe")=="\"C:\\Test User\\Launcher.exe\" \"%1\"","Protocol quoting");
         string source=Path.Combine(root,"source","fixture");Directory.CreateDirectory(source);File.WriteAllText(Path.Combine(source,"data.acd"),"abc",new UTF8Encoding(false));var package=Package("fixture",source);
