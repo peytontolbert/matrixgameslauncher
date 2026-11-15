@@ -7,6 +7,7 @@ public static class MapLauncherTests {
  static void Assert(bool ok,string why){if(!ok)throw new Exception(why);}
  static void Reject(Action action){bool rejected=false;try{action();}catch(IOException){rejected=true;}Assert(rejected,"Unsafe map input accepted");}
  public static void Run(string scratch){
+  string skins=Path.Combine(scratch,"named-skins");Directory.CreateDirectory(Path.Combine(skins,"Gun Metal"));Directory.CreateDirectory(Path.Combine(skins,"[invalid]"));Assert(AssettoCorsa.InstalledSkin(skins)=="Gun Metal","A car with only a spaced skin must be launchable");Assert(AssettoCorsa.InstalledSkin(Path.Combine(scratch,"missing-skins"))==null,"Missing skins still rejected");
   foreach(string bad in new[]{"../map","folder/map","folder\\map","C:map","CON","track.","track\n"})Assert(!Data.ContentId(bad),"Unsafe content folder");Assert(Data.ContentId("Brooklyn Park"),"Spaces in track folders");
   string source=Path.Combine(scratch,"map-source","Brooklyn Park"),surface=Path.Combine(source,"data","surfaces.ini");Directory.CreateDirectory(Path.GetDirectoryName(surface));File.WriteAllText(surface,"abc");string hash=ContentInstaller.HashFile(surface);
   var package=new {id="Brooklyn Park",kind="track",name="Brooklyn Park",installedOnly=true,sha256=hash,bytes=0,expandedBytes=0,archiveRoot="Brooklyn Park",checks=new[]{new{path="data/surfaces.ini",sha256=hash,bytes=3}}};
