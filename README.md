@@ -6,7 +6,11 @@ Choose a game, find a server, and join. Each game has its own integration for in
 
 ## Status
 
-The [hosted server directory](https://matrixgames.app/servers) and launcher account API are live. Download the [Windows launcher](https://matrixgames.app/driving/MatrixGamesLauncher.exe), or build it from source below. This is the initial release: Assetto Corsa is the only implemented game adapter. GTA and Halo are planned, not supported yet.
+The [hosted server directory](https://matrixgames.app/servers) and launcher account API are live. Download the [Windows launcher](https://matrixgames.app/driving/MatrixGamesLauncher.exe), or build it from source below. Assetto Corsa is supported, and the Matrix GTA V Legacy native client is available as a development preview. Native authentication, resource downloading, UDP joining and spawning at Legion Square have passed a real hosted test. Browser/native crossplay remains in development. Halo remains planned.
+
+GTA joins target the separate `MatrixGtaRuntime.exe` engine runtime in the selected library's `runtimes/gta-v` folder. The first join offers a 319 MB framework download, verifies its pinned SHA-256, extracts it within the selected library, and verifies every runtime file. Existing runtime folders are preserved if verification fails. GTA V Legacy build 3889 must already be installed; the framework package contains no base-game files. The runtime is derived from CitizenFX source with upstream notices retained, and does not launch the installed FiveM application or use a Story Mode plugin.
+
+Matrix Games Launcher owns server selection and account UI and sends an encrypted, single-use grant bound to the selected server, game installation, runtime folder and GTA build. The hosted native server requires a Matrix account grant; missing, invalid and replayed grants are rejected. The runtime retains its game-ownership provider. The current preview supports native spawning and a limited browser bridge protocol, not a complete shared world with combat, collisions, vehicle seats or voice. Runtime binaries are not publisher-signed yet. Cancelled or failed installations retain their isolated staging folder for inspection.
 
 ## How joining works
 
@@ -49,6 +53,8 @@ Requirements: 64-bit Windows with .NET Framework 4.8 and the Windows `tar.exe` t
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
 .\build\MatrixGamesLauncher.exe
 ```
+
+The launcher build contains no game SDK or mod-loader binaries. `-NativeSessionTest <path>` additionally runs the launcher/runtime encrypted handoff tests against the separately compiled native session test executable.
 
 Open **Settings**, save your folders, and select **Enable browser joins**. This copies the executable to `%LocalAppData%\MatrixGames\Launcher` and registers `matrixgames://` links for your Windows account. Updating the executable requires running the new build and enabling browser joins again. Automatic updates and a signed installer are not included in this first version.
 

@@ -24,7 +24,7 @@ public interface IGameAdapter {
     Task Launch(Dictionary<string,object> grant,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel);
 }
 public static class Games {
-    public static readonly IGameAdapter[] All={new AssettoCorsa()};
+    public static readonly IGameAdapter[] All={new AssettoCorsa(),new GtaV()};
     public static IGameAdapter Resolve(string id){var game=All.FirstOrDefault(g=>g.Id==id);if(game==null)throw new IOException("This game does not have an installed launcher integration yet");return game;}
 }
 public static class JoinLink {
