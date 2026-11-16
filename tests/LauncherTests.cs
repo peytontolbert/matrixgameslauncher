@@ -13,6 +13,7 @@ public static class LauncherTests {
     static ContentPackage Package(string id,string source){return new ContentPackage{Id=id,Name=id,Kind="car",ArchiveRoot=id,Url=new Uri("https://assets.example.test/car.7z"),Sha256=new string('a',64),Bytes=1,ExpandedBytes=3,Checks=new[]{new AssetCheck{Path="data.acd",Sha256=ContentInstaller.HashFile(Path.Combine(source,"data.acd")),Bytes=3}}};}
     public static int Main(string[] args){try{
         MapSettingsTests.Run();
+        AssettoAssistTests.Run();
         if(args.Length!=1||!Path.IsPathRooted(args[0]))throw new Exception("Pass an absolute scratch directory");string root=Path.Combine(args[0],Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
         MapLauncherTests.Run(root);
         foreach(string bad in new[]{"../outside","root/../../outside","C:/outside","root/file:ads","root/CON.txt","root/file.","root/sub\\file","root/a\nb"})Reject(()=>ContentInstaller.ArchiveName(bad,"root"),"Unsafe archive path accepted");

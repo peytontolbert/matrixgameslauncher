@@ -12,6 +12,7 @@ public sealed class GameLocations {
     public string InstallDirectory="",DocumentsDirectory="",ContentDirectory="";
 }
 public sealed class LauncherSettings {
+    public string AssettoClutchAssist="automatic";
     public string SteamDirectory="",DriverName="Driver",LibraryDirectory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"MatrixGames");
     public Dictionary<string,GameLocations> Games=new Dictionary<string,GameLocations>();
     public string[] PreviousLibraries=new string[0];

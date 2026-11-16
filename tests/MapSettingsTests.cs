@@ -15,6 +15,8 @@ public static class MapSettingsTests {
         Check(Data.Text(request,"revision")==new string('a',64),"Selection revision preserved");
         Reject(()=>state.Request("unsupported",true,true));Reject(()=>state.Request("unknown",false,true));Reject(()=>state.Request("supported",true,false));
         state.CanSwitch=false;Reject(()=>state.Request("supported",false,true));
+        server["catalogueId"]="drift";payload["catalogues"]=new object[]{new Dictionary<string,object>{{"id","drift"},{"name","Drift"},{"models",new object[]{new Dictionary<string,object>{{"id","test_car"},{"name","Test car"}}}}}};
+        state=MapSettingsState.Parse(payload);request=Data.Object(Data.Json.DeserializeObject(Data.Json.Serialize(state.Request("supported",false,true,"drift"))));Check(Data.Text(request,"catalogueId")=="drift","Catalogue selection preserved");Reject(()=>state.Request("supported",false,true,"unknown"));
         server["selectionRevision"]="invalid";Reject(()=>MapSettingsState.Parse(payload));
     }
 }
