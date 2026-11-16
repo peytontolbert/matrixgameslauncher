@@ -15,6 +15,7 @@ public sealed class LauncherWindow : Form {
     readonly Label status=new Label{AutoSize=false,Dock=DockStyle.Bottom,Height=64,Padding=new Padding(12)};
     readonly Label account=new Label{AutoSize=true,Text="Browse servers, then sign in to join."};
     readonly Button join=new Button{Text="Join server",AutoSize=true};
+    readonly Button mapSettings=new Button{Text="Map / traffic",AutoSize=true,Visible=false};
     readonly Button cancel=new Button{Text="Cancel",AutoSize=true,Enabled=false};
     readonly Button signIn=new Button{Text="Sign in",AutoSize=true},signOut=new Button{Text="Sign out",AutoSize=true};
     readonly TextBox details=new TextBox{Dock=DockStyle.Fill,Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical};
@@ -31,8 +32,8 @@ public sealed class LauncherWindow : Form {
         Button refresh=Button("Refresh servers",()=>Run(RefreshServers));signIn.Click+=(s,e)=>Run(SignIn);signOut.Click+=(s,e)=>Run(async()=>{try{if(api.Token!=null)await api.Call("/v1/launcher/auth/logout",new{},operation.Token);}finally{SignedOut("Signed out on this device.");}});
         Button options=Button("Settings / library",()=>{using(var dialog=new SettingsWindow(settings))dialog.ShowDialog(this);UpdateLibrary();});
         Button host=Button("Host a server",()=>Open("https://matrixgames.app/servers#host"));
-        actions.Controls.AddRange(new Control[]{refresh,signIn,signOut,options,host});
-        UpdateAccountButtons();UpdateLibrary();servers.SelectedIndexChanged+=(s,e)=>{var selected=servers.SelectedItem as ServerEntry;details.Text=selected==null?"Select a server to see its game and required content.":selected.Summary;};
+        mapSettings.Click+=(s,e)=>Run(ConfigureMap);actions.Controls.AddRange(new Control[]{refresh,signIn,signOut,options,host,mapSettings});
+        UpdateAccountButtons();UpdateLibrary();servers.SelectedIndexChanged+=(s,e)=>{var selected=servers.SelectedItem as ServerEntry;details.Text=selected==null?"Select a server to see its game and required content.":selected.Summary;mapSettings.Visible=selected!=null&&selected.MapSelection;};
         join.Click+=(s,e)=>Run(Join);cancel.Click+=(s,e)=>{if(operation!=null)operation.Cancel();};Shown+=(s,e)=>Run(RefreshServers);
         FormClosing+=(s,e)=>{if(busy){e.Cancel=true;status.Text="Cancel the current operation or close the game before closing the launcher.";}};
     }
@@ -53,6 +54,20 @@ public sealed class LauncherWindow : Form {
         // after sign-in, without requiring a second click in the server browser.
         if(pending!=null&&selected==null){pending=null;status.Text="The requested server is no longer listed. Choose another server.";}
         if(pending!=null&&selected!=null&&selected.Online&&signedIn){pending=null;BeginInvoke(new Action(()=>Run(Join)));}
+    }
+    async Task ConfigureMap(){
+        var server=servers.SelectedItem as ServerEntry;if(server==null||!server.MapSelection)throw new IOException("Select the custom map server first.");
+        var path="/v1/servers/"+server.Id;var state=MapSettingsState.Parse(await api.Call(path+"/maps",null,operation.Token));
+        string target;bool enabled;object request;
+        using(var dialog=new MapSettingsWindow(state)){if(dialog.ShowDialog(this)!=DialogResult.OK)return;target=dialog.MapId;enabled=dialog.TrafficEnabled;request=dialog.Request;}
+        await api.Call(path+"/map",request,operation.Token);status.Text="Restarting the custom server with the selected map and traffic settings...";
+        for(int i=0;i<80;i++){
+            await Task.Delay(1500,operation.Token);var reply=await api.Call(path+"/maps",null,operation.Token);var current=Data.Object(reply["server"]);
+            if(current.ContainsKey("switching")&&Convert.ToBoolean(current["switching"]))continue;
+            string error=Data.Text(reply,"lastError");if(error.Length>0)throw new IOException(error);
+            if(Convert.ToBoolean(current["online"])&&Data.Text(current,"mapId")==target&&Convert.ToBoolean(current["trafficEnabled"])==enabled){await RefreshServers();status.Text="Map ready. AI traffic is "+(enabled?"on":"off")+". Join when ready.";return;}
+        }
+        throw new IOException("The restart is taking longer than expected. Refresh to check server status.");
     }
     async Task SignIn(){
         var start=await api.Call("/v1/launcher/auth/start",new{},operation.Token);string code=Data.Text(start,"userCode"),device=Data.Text(start,"deviceCode"),url=Data.Text(start,"verificationUrl");
