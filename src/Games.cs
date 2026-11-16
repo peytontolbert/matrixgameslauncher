@@ -54,6 +54,7 @@ public sealed class AssettoCorsa : IGameAdapter {
     public string AccountId(){uint id=unchecked((uint)Convert.ToInt32(Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam\ActiveProcess","ActiveUser",0)));if(id==0||!Process.GetProcessesByName("steam").Any())throw new IOException("Open Steam and sign in to the account that owns Assetto Corsa.");return (76561197960265728UL+id).ToString();}
     static string Plain(string value){if(string.IsNullOrEmpty(value)||value.Length>180||value.Any(char.IsControl)||value.IndexOfAny(new[]{'=','[',']'})>=0)throw new IOException("Invalid launch setting");return value;}
     static int Port(object value){int p=Convert.ToInt32(value);if(p<1||p>65535)throw new IOException("Invalid server port");return p;}
+    public static string InstalledSkin(string folder){return Directory.Exists(folder)?Directory.GetDirectories(folder).Select(Path.GetFileName).Where(Data.ContentId).OrderBy(n=>n).FirstOrDefault():null;}
     public static void ValidateGrant(Dictionary<string,object> d,ServerEntry server,string model){
         int schema=Convert.ToInt32(d["schema"]);string host=Data.Text(d,"host");
         if(!(schema==2||schema==3)||Data.Text(d,"game")!=server.Game||Data.Text(d,"server")!=server.Id||Data.Text(d,"track")!=server.Track||Data.Text(d,"model")!=model||!server.Models.Contains(model)||!Data.Id(model)||!Data.ContentId(server.Track)||Data.Text(d,"layout")!=server.Layout)throw new IOException("The server join response does not match your selection");
@@ -77,7 +78,7 @@ public sealed class AssettoCorsa : IGameAdapter {
         var info=await ApiClient.Request(new Uri(origin+"/INFO"),null,null,cancel);string advertised=Data.Text(info,"track");var csp=Regex.Match(advertised,@"\Acsp/[0-9]+/\.\./(.+)\z");if(csp.Success)advertised=csp.Groups[1].Value;
         if(advertised!=server.Track+(server.Layout.Length>0?"-"+server.Layout:""))throw new IOException("Server track changed. Refresh the server list.");
         string features="";if(Convert.ToInt32(d["schema"])==2){var details=await ApiClient.Request(new Uri(origin+"/JSON%7C0"),null,null,cancel);object raw;if(details.TryGetValue("Features",out raw))features=string.Join(",",Data.Array(raw).Select(Convert.ToString));}
-        string skins=Path.Combine(locations.InstallDirectory,"content","cars",model,"skins");string skin=Directory.Exists(skins)?Directory.GetDirectories(skins).Select(Path.GetFileName).Where(Data.Id).OrderBy(n=>n).FirstOrDefault():null;if(skin==null)throw new IOException("This car needs an installed skin");
+        string skins=Path.Combine(locations.InstallDirectory,"content","cars",model,"skins");string skin=InstalledSkin(skins);if(skin==null)throw new IOException("This car needs an installed skin");
         ValidateGrant(d,server,model);cancel.ThrowIfCancellationRequested();string config=RaceConfig(d,settings.DriverName,account,skin,features),cfg=Path.Combine(locations.DocumentsDirectory,"cfg"),path=Path.Combine(cfg,"race.ini");ContentInstaller.NoLinks(path);Directory.CreateDirectory(cfg);
         string backup=path+".matrixgames-"+Guid.NewGuid().ToString("N")+".bak";bool existed=File.Exists(path);if(existed)File.Copy(path,backup,false);
         try{
