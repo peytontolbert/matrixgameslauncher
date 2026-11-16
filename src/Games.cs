@@ -82,8 +82,10 @@ public sealed class AssettoCorsa : IGameAdapter {
         ValidateGrant(d,server,model);cancel.ThrowIfCancellationRequested();string config=RaceConfig(d,settings.DriverName,account,skin,features),cfg=Path.Combine(locations.DocumentsDirectory,"cfg"),path=Path.Combine(cfg,"race.ini");ContentInstaller.NoLinks(path);Directory.CreateDirectory(cfg);
         string backup=path+".matrixgames-"+Guid.NewGuid().ToString("N")+".bak";bool existed=File.Exists(path);if(existed)File.Copy(path,backup,false);
         try{
-            File.WriteAllText(path,config,new UTF8Encoding(false));var start=new ProcessStartInfo{FileName=Path.Combine(locations.InstallDirectory,"acs.exe"),WorkingDirectory=locations.InstallDirectory,UseShellExecute=false};start.EnvironmentVariables["SteamAppId"]="244210";start.EnvironmentVariables["SteamGameId"]="244210";
-            using(var process=Process.Start(start)){report("Assetto Corsa is running. Close the game to return to the launcher.");await Task.Run(()=>process.WaitForExit());}
+            using(var assists=new AssettoAssistLease(cfg,settings.AssettoClutchAssist)){
+                File.WriteAllText(path,config,new UTF8Encoding(false));var start=new ProcessStartInfo{FileName=Path.Combine(locations.InstallDirectory,"acs.exe"),WorkingDirectory=locations.InstallDirectory,UseShellExecute=false};start.EnvironmentVariables["SteamAppId"]="244210";start.EnvironmentVariables["SteamGameId"]="244210";
+                using(var process=Process.Start(start)){report("Assetto Corsa is running. Close the game to return to the launcher.");await Task.Run(()=>process.WaitForExit());}
+            }
         }finally{if(File.Exists(path)&&File.ReadAllText(path)==config){if(existed)File.Copy(backup,path,true);else File.Delete(path);}}
         report("Session ended. Previous race settings restored when unchanged; backup retained.");
     }
@@ -95,7 +97,7 @@ public sealed class AssettoCarWindow : Form {
     public static string Requirements(ContentPlan plan){
         if(plan==null)return "Required assets will be checked before joining.";
         var lines=new List<string>{"Required assets: "+plan.Manifest.Assets.Length+" | Download: "+(plan.DownloadBytes/1024.0/1024/1024).ToString("0.00")+" GB", "All server cars are needed to see other players, plus the track and traffic assets.", ""};
-        foreach(var p in plan.Manifest.Assets){var choice=plan.Choices.FirstOrDefault(c=>c.Package==p);string state=choice==null?"Installed":choice.Folder!=null?"Reuse existing folder":choice.Archive!=null?"Install existing archive":p.InstalledOnly?"Install through Steam or track owner":"Download "+(p.Bytes/1024/1024)+" MB";lines.Add(state+" | "+p.Kind+" | "+p.Name);}
+        foreach(var p in plan.Manifest.Assets){var choice=plan.Choices.FirstOrDefault(c=>c.Package==p);string state=choice==null?"Installed":choice.Folder!=null?"Reuse existing folder":choice.Archive!=null?"Install existing archive":p.InstalledOnly?"Install through Steam or content owner":"Download "+(p.Bytes/1024/1024)+" MB";lines.Add(state+" | "+p.Kind+" | "+p.Name);}
         return string.Join("\r\n",lines);
     }
     public AssettoCarWindow(ServerEntry server,ContentPlan plan=null){
