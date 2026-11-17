@@ -8,3 +8,5 @@
 .env*
 session.bin
 settings.json
+
+!vendor/7zip/7za.exe

@@ -43,20 +43,6 @@ public static class ContentInstaller {
         if(!paths.Any(p=>p.StartsWith(package.ArchiveRoot+"/",StringComparison.Ordinal)))throw new IOException("Expected content folder is missing");
         if(total!=package.ExpandedBytes)throw new IOException("Archive size differs from the reviewed package");
     }
-    static string Quote(string value){if(value.Contains("\"")||value.Any(char.IsControl))throw new IOException("Invalid file path");return "\""+value+"\"";}
-    static async Task<string> ReadBounded(StreamReader reader){var result=new StringBuilder();char[] buffer=new char[8192];int count;while((count=await reader.ReadAsync(buffer,0,buffer.Length))>0){if(result.Length+count>16*1024*1024)throw new IOException("Archive listing is too large");result.Append(buffer,0,count);}return result.ToString();}
-    static string Tar(string arguments,CancellationToken cancel){
-        string tool=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"tar.exe");
-        if(!File.Exists(tool))throw new IOException("Windows archive support is missing. Update Windows before installing content.");
-        using(var p=new Process{StartInfo=new ProcessStartInfo{FileName=tool,Arguments=arguments,UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true}}){
-            p.Start();Task<string> stdout=ReadBounded(p.StandardOutput),stderr=ReadBounded(p.StandardError);var timer=Stopwatch.StartNew();
-            try{while(!p.WaitForExit(100)){cancel.ThrowIfCancellationRequested();if(stdout.IsFaulted||stderr.IsFaulted)throw new IOException("Archive output exceeded its limit");if(timer.Elapsed.TotalMinutes>15)throw new IOException("Archive operation timed out");}cancel.ThrowIfCancellationRequested();}
-            catch{if(!p.HasExited){p.Kill();p.WaitForExit();}throw;}
-            string output=stdout.GetAwaiter().GetResult(),error=stderr.GetAwaiter().GetResult();
-            if(p.ExitCode!=0)throw new IOException("Windows could not read this archive: "+error.Substring(0,Math.Min(error.Length,400)));
-            if(output.Length>16*1024*1024)throw new IOException("Archive listing is too large");return output;
-        }
-    }
     static void Report(IProgress<InstallProgress> progress,string message,long done=0,long total=0){if(progress!=null)progress.Report(new InstallProgress(message,done,total));}
     public static bool VerifyArchive(string archive,ContentPackage package){return File.Exists(archive)&&new FileInfo(archive).Length==package.Bytes&&HashFile(archive)==package.Sha256;}
     public static string Download(ContentPackage package,string cache,CancellationToken cancel,IProgress<InstallProgress> progress){
@@ -96,9 +82,10 @@ public static class ContentInstaller {
         NoLinks(archive);NoLinks(staging);if(Directory.Exists(staging))throw new IOException("Installation staging folder already exists");
         if(!VerifyArchive(archive,package))throw new IOException("Archive integrity check failed");
         Report(progress,"Checking archive paths: "+package.Id);
-        ValidateListing(Tar("-tf "+Quote(archive),cancel),Tar("-tvf "+Quote(archive),cancel),package);
+        string tools=Path.GetDirectoryName(staging);
+        ArchiveTool.ValidateListing(ArchiveTool.Run(tools,"l -slt -ba -sccUTF-8 -- "+ArchiveTool.Quote(archive),cancel),package);
         cancel.ThrowIfCancellationRequested();Directory.CreateDirectory(staging);Report(progress,"Extracting "+package.Id);
-        Tar("-xf "+Quote(archive)+" -C "+Quote(staging)+" -- "+Quote(package.ArchiveRoot),cancel);
+        ArchiveTool.Run(tools,"x -y -aoa -bd -bb0 -sccUTF-8 -o"+ArchiveTool.Quote(staging)+" -- "+ArchiveTool.Quote(archive)+" "+ArchiveTool.Quote(package.ArchiveRoot+"/*"),cancel);
         string candidate=Child(staging,package.ArchiveRoot);CheckTree(candidate,package.ExpandedBytes);return candidate;
     }
     public static void CheckTree(string folder,long maximum){

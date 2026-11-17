@@ -60,7 +60,7 @@ When a server requires a different version of a content folder, the previous fol
 
 ## Build and run
 
-Requirements: 64-bit Windows with .NET Framework 4.8 and the Windows `tar.exe` tool supporting the archive format supplied by the server. Content linking needs a local NTFS volume; administrator access is not normally required.
+Requirements: 64-bit Windows with .NET Framework 4.8 and the bundled 7-Zip archive component (included in the launcher). LZMA/LZMA2 7z and ZIP packages work without installing an additional archive utility. Content linking needs a local NTFS volume; administrator access is not normally required.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
