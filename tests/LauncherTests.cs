@@ -16,6 +16,7 @@ public static class LauncherTests {
         AssettoAssistTests.Run();
         if(args.Length!=1||!Path.IsPathRooted(args[0]))throw new Exception("Pass an absolute scratch directory");string root=Path.Combine(args[0],Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
         MapLauncherTests.Run(root);
+        ArchiveCodecTests.Run(root);
         foreach(string bad in new[]{"../outside","root/../../outside","C:/outside","root/file:ads","root/CON.txt","root/file.","root/sub\\file","root/a\nb"})Reject(()=>ContentInstaller.ArchiveName(bad,"root"),"Unsafe archive path accepted");
         ContentInstaller.ArchiveName("root/skins/blue skin/body.dds","root");count++;
         foreach(string bad in new[]{"matrixgames://join?game=assetto-corsa&server=a&host=evil","matrixgames://join?game=halo&server=a","matrixgames://join?game=assetto-corsa&server=a\n","https://join?game=assetto-corsa&server=a"})Reject(()=>JoinLink.Server(bad),"Unsafe protocol accepted");
