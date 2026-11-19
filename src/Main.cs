@@ -89,8 +89,8 @@ public sealed class LauncherWindow : Form {
                         var runtimeProgress=new Progress<InstallProgress>(p=>status.Text=p.Message+(p.Total>0?" ("+(p.Done*100/p.Total)+"%)":""));
                         await RuntimeInstaller.Install(settings,api,runtimeProgress,operation.Token);
                     }
-                    var runtime=await Task.Run(()=>MatrixNativeRuntime.Inspect(MatrixNativeRuntime.Location(settings)));
-                    var permission=await api.Call("/v1/gta/runtime-ticket",new{server=server.Id},operation.Token);
+                    var runtime=await Task.Run(()=>RuntimeMapCapacity.Prepare(MatrixNativeRuntime.Location(settings)));
+                    var permission=await api.Call("/v1/gta/runtime-ticket",new{server=server.Id,runtimeMapCapacity=RuntimeMapCapacity.Capacity},operation.Token);
                     await runtime.Launch(permission,server,locations,message=>status.Text=message,operation.Token);return;
                 }
                 status.Text="Checking server assets...";var response=await api.Call("/v1/servers/"+server.Id+"/manifest",null,operation.Token);if(Data.Text(response,"server")!=server.Id)throw new IOException("Wrong server manifest");var manifest=AssetManifest.Parse(response["manifest"]);if(manifest.Game!=server.Game||!manifest.Assets.Any(p=>p.Kind=="track"&&p.Id==server.Track)||!server.Models.All(id=>manifest.Assets.Any(p=>p.Kind=="car"&&p.Id==id)))throw new IOException("Server manifest is incomplete");

@@ -69,6 +69,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
 
 The launcher build contains no game SDK or mod-loader binaries. `-NativeSessionTest <path>` additionally runs the launcher/runtime encrypted handoff tests against the separately compiled native session test executable.
 
+Before joining GTA, the launcher verifies the runtime and upgrades the supported map registry configuration from 12,000 to 24,000 entries for NYC. This changes only the pinned configuration and its checksum; executable files, cached downloads, and profiles are preserved. GTA must be closed. Interrupted updates are recovered on the next join, and unknown or modified configurations are rejected. NYC servers can require this updated launcher before issuing a join ticket.
+
 Open **Settings**, save your folders, and select **Enable browser joins**. This copies the executable to `%LocalAppData%\MatrixGames\Launcher` and registers `matrixgames://` links for your Windows account. Updating the executable requires running the new build and enabling browser joins again. Automatic updates and a signed installer are not included in this first version.
 
 Settings are stored in that same directory. The account session is protected using Windows DPAPI for the current Windows user. Sign out to revoke the device's current session. Browser joins carry a supported game ID and server ID; they never carry executable paths or arbitrary commands.

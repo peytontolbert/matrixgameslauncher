@@ -19,7 +19,8 @@ public sealed class MatrixNativeRuntime {
     public readonly int[] Builds;
     MatrixNativeRuntime(string root,int[] builds){Root=root;Builds=builds;}
     static readonly string[] Required={"MatrixGtaRuntime.exe","CoreRT.dll","CitizenGame.dll","components.json"};
-    public static MatrixNativeRuntime Inspect(string root){
+    public static MatrixNativeRuntime Inspect(string root){return Inspect(root,null);}
+    internal static MatrixNativeRuntime Inspect(string root,Func<string,string,long,string,long,bool> interruptedUpdate){
         root=Path.GetFullPath(root);ContentInstaller.NoLinks(root);string file=Path.Combine(root,"matrix-runtime.json");ContentInstaller.NoLinks(file);
         if(!File.Exists(file))throw new IOException("The Matrix GTA runtime is not installed in the selected Matrix library.");
         if(new FileInfo(file).Length>4*1024*1024)throw new IOException("Invalid runtime manifest");
@@ -31,7 +32,9 @@ public sealed class MatrixNativeRuntime {
         foreach(var item in entries){var entry=(Dictionary<string,object>)item;string relative=Data.Text(entry,"path"),digest=Data.Text(entry,"sha256");
             if(!seen.Add(relative)||!Regex.IsMatch(digest,@"\A[a-f0-9]{64}\z")||relative.IndexOf('\\')>=0)throw new IOException("Invalid runtime file manifest");
             string target=ContentInstaller.Child(root,relative);ContentInstaller.NoLinks(target);
-            if(!File.Exists(target)||new FileInfo(target).Length!=Convert.ToInt64(entry["bytes"])||ContentInstaller.HashFile(target)!=digest)throw new IOException("Matrix runtime file is missing or changed: "+relative);
+            if(!File.Exists(target))throw new IOException("Matrix runtime file is missing or changed: "+relative);
+            long expectedSize=Convert.ToInt64(entry["bytes"]),actualSize=new FileInfo(target).Length;string actualHash=ContentInstaller.HashFile(target);
+            if((actualSize!=expectedSize||actualHash!=digest)&&(interruptedUpdate==null||!interruptedUpdate(relative,digest,expectedSize,actualHash,actualSize)))throw new IOException("Matrix runtime file is missing or changed: "+relative);
         }
         if(Required.Any(name=>!seen.Contains(name)))throw new IOException("Matrix runtime is incomplete");
         return new MatrixNativeRuntime(root,builds);

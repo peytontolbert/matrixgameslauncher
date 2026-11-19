@@ -43,7 +43,7 @@ public sealed class GtaV : IGameAdapter {
 #endif
     public async Task Launch(Dictionary<string,object> grant,ServerEntry server,string model,string account,LauncherSettings settings,Action<string> report,CancellationToken cancel){
         var location=settings.Games[Id];ValidateLocations(location);
-        var runtime=await Task.Run(()=>MatrixNativeRuntime.Inspect(MatrixNativeRuntime.Location(settings)));
+        var runtime=await Task.Run(()=>RuntimeMapCapacity.Prepare(MatrixNativeRuntime.Location(settings)));
         await runtime.Launch(grant,server,location,report,cancel);
     }
 }
